@@ -1,0 +1,2461 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Admin — eleazar</title>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+  apiKey: "AIzaSyBRYbEnjS_yUP6iBvaGNS7OphxIYgL8OiI",
+  authDomain: "eleazar-app.firebaseapp.com",
+  projectId: "eleazar-app",
+  storageBucket: "eleazar-app.firebasestorage.app",
+  messagingSenderId: "519327852561",
+  appId: "1:519327852561:web:3735226d159f6b1a64a9b0"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db   = firebase.firestore();
+    const auth = firebase.auth();
+  </script>
+
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --navy:       #1e4d7b;
+      --navy-2:     #183f66;
+      --navy-3:     #2a6099;
+      --gold:       #8ab4d4;
+      --gold-lt:    #b8d4e8;
+      --parch:      #f0f4f8;
+      --parch-2:    #e2eaf3;
+      --parch-3:    #c2d4e8;
+      --ink:        #1a2535;
+      --ink-2:      #243448;
+      --ink-3:      #4a6480;
+      --cream:      #f5f8fc;
+      --shadow:     rgba(26,45,65,0.15);
+      --shadow-d:   rgba(26,45,65,0.30);
+      --radius:     14px;
+      --tr:         0.2s cubic-bezier(.4,0,.2,1);
+      --green:      #1e8a52;
+      --green-lt:   #d4f0e3;
+      --yellow:     #c07c00;
+      --yellow-lt:  #fff3cd;
+      --red:        #c0392b;
+      --red-lt:     #fde8e6;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--parch);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, #0f2d4a 0%, #1e4d7b 50%, #183f66 100%);
+      min-height: 100vh;
+      position: fixed;
+      left: 0; top: 0; bottom: 0;
+      display: flex; flex-direction: column;
+      padding: 28px 0 20px;
+      z-index: 100;
+      box-shadow: 4px 0 20px var(--shadow-d);
+    }
+    .sidebar-logo {
+      text-align: center;
+      padding: 0 20px 22px;
+      border-bottom: 1px solid rgba(138,180,212,0.2);
+      margin-bottom: 18px;
+    }
+    .sidebar-logo .logo-symbol {
+      width: 54px; height: 54px;
+      background: rgba(255,255,255,0.12);
+      border: 2px solid rgba(138,180,212,0.4);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      margin: 0 auto 10px;
+    }
+    .sidebar-logo h1 {
+      font-family: 'Playfair Display', serif;
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      line-height: 1.4;
+    }
+    .sidebar-logo p {
+      color: var(--gold);
+      font-size: 0.66rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    .nav-section-title {
+      font-size: 0.6rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(138,180,212,0.6);
+      padding: 6px 20px 4px;
+      font-family: 'Playfair Display', serif;
+    }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+      color: rgba(255,255,255,0.65);
+      font-size: 0.82rem;
+      border-left: 3px solid transparent;
+      transition: all var(--tr);
+      text-decoration: none;
+    }
+    .nav-item .ni { font-size: 1.05rem; width: 22px; text-align: center; flex-shrink: 0; }
+    .nav-item:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.06); }
+    .nav-item.aktif {
+      color: #fff;
+      background: rgba(255,255,255,0.1);
+      border-left-color: var(--gold-lt);
+      font-weight: 600;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 16px 20px 0;
+      border-top: 1px solid rgba(138,180,212,0.2);
+      font-size: 0.65rem;
+      color: rgba(138,180,212,0.5);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+
+    /* ── LOGIN SCREEN ── */
+    #loginScreen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #0f1c3f 0%, #1e4d7b 100%);
+      z-index: 9999;
+    }
+    #loginScreen.hidden { display: none; }
+    .login-box {
+      background: #fff;
+      border-radius: 18px;
+      padding: 2.5rem 2.5rem 2rem;
+      width: min(400px, 90vw);
+      text-align: center;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.35);
+    }
+    .login-logo {
+      width: 64px; height: 64px;
+      border-radius: 14px;
+      object-fit: cover;
+      object-position: center top;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 12px rgba(30,77,123,0.25);
+    }
+    .login-box h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+      color: #1e4d7b;
+      margin: 0 0 .2rem;
+    }
+    .login-box .login-sub {
+      font-size: 0.78rem;
+      color: #6b8caa;
+      margin: 0 0 1.8rem;
+      letter-spacing: 0.5px;
+    }
+    .login-field {
+      width: 100%;
+      padding: .7rem 1rem;
+      border: 1.5px solid #d0dce8;
+      border-radius: 9px;
+      font-size: .95rem;
+      margin-bottom: .85rem;
+      box-sizing: border-box;
+      font-family: inherit;
+      color: #1a2535;
+      transition: border-color .2s;
+      outline: none;
+    }
+    .login-field:focus { border-color: #1e4d7b; }
+    #loginError {
+      display: none;
+      background: #fef0f0;
+      border: 1px solid #f5c6c6;
+      color: #b01c1c;
+      font-size: .82rem;
+      border-radius: 8px;
+      padding: .55rem .9rem;
+      margin-bottom: .85rem;
+      text-align: left;
+    }
+    #loginBtn {
+      width: 100%;
+      padding: .8rem;
+      background: linear-gradient(135deg, #1e4d7b, #2a6099);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: .5px;
+      transition: opacity .2s;
+    }
+    #loginBtn:disabled { opacity: .6; cursor: not-allowed; }
+    #loginBtn:hover:not(:disabled) { opacity: .9; }
+    .login-ver {
+      margin-top: 1.2rem;
+      font-size: 0.68rem;
+      color: #a0b4c8;
+    }
+    /* ── TOMBOL KELUAR di sidebar ── */
+    .btn-keluar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: calc(100% - 32px);
+      margin: 12px 16px 0;
+      padding: .55rem .9rem;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(138,180,212,0.25);
+      border-radius: 8px;
+      color: rgba(138,180,212,0.75);
+      font-size: 0.78rem;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+      transition: background .2s, color .2s;
+    }
+    .btn-keluar:hover {
+      background: rgba(255,255,255,0.13);
+      color: rgba(255,255,255,0.95);
+    }
+    #adminEmailLabel {
+      font-size: 0.62rem;
+      color: rgba(138,180,212,0.6);
+      text-align: center;
+      padding: 6px 16px 0;
+      word-break: break-all;
+      line-height: 1.5;
+    }
+
+    /* ── MAIN ── */
+    .main {
+      margin-left: 220px;
+      flex: 1;
+      min-height: 100vh;
+      padding: 28px 28px 60px;
+    }
+
+    /* ── SECTIONS ── */
+    .section { display: none; animation: fadeUp 0.25s ease; }
+    .section.aktif { display: block; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1.5px solid var(--parch-3);
+    }
+    .page-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      color: var(--navy);
+    }
+    .page-header p {
+      font-size: 0.78rem;
+      color: var(--ink-3);
+      margin-top: 2px;
+    }
+    .refresh-btn {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 9px;
+      font-size: 0.82rem;
+      font-family: 'Lora', serif;
+      cursor: pointer;
+      transition: all var(--tr);
+    }
+    .refresh-btn:hover { background: var(--navy-3); }
+    .refresh-btn:active { transform: scale(0.97); }
+
+    /* ── CARDS ── */
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--parch-3);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 2px 12px var(--shadow);
+      margin-bottom: 18px;
+    }
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.72rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title::after { content:''; flex:1; height:1px; background: var(--parch-3); }
+
+    /* ── STATS GRID ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #fff;
+      border: 1.5px solid var(--parch-3);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 2px 10px var(--shadow);
+    }
+    .stat-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--navy);
+      line-height: 1;
+    }
+    .stat-lbl { font-size: 0.72rem; color: var(--ink-3); margin-top: 5px; }
+    .stat-card.green .stat-num { color: var(--green); }
+    .stat-card.yellow .stat-num { color: var(--yellow); }
+    .stat-card.red .stat-num { color: var(--red); }
+
+    /* ── PROGRAM AKTIF CARD ── */
+    .program-card {
+      background: linear-gradient(135deg, var(--navy), var(--navy-3));
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      color: #fff;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .program-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(45deg, rgba(138,180,212,0.06) 0, rgba(138,180,212,0.06) 1px, transparent 1px, transparent 14px);
+    }
+    .program-card-inner { position: relative; }
+    .program-label {
+      font-size: 0.62rem;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--gold-lt);
+      margin-bottom: 8px;
+      font-family: 'Playfair Display', serif;
+    }
+    .program-kitab {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .program-period {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.75);
+      margin-bottom: 14px;
+    }
+    .program-meta {
+      display: flex; gap: 20px; flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .pm-item { display: flex; flex-direction: column; gap: 2px; }
+    .pm-key { font-size: 0.62rem; letter-spacing: 1px; text-transform: uppercase; color: var(--gold-lt); opacity: 0.8; }
+    .pm-val { font-size: 0.9rem; font-weight: 600; color: #fff; font-family: 'JetBrains Mono', monospace; }
+
+    /* Progress bar */
+    .prog-wrap { margin-top: 6px; }
+    .prog-top { display: flex; justify-content: space-between; font-size: 0.75rem; color: rgba(255,255,255,0.75); margin-bottom: 6px; }
+    .prog-bar { height: 7px; background: rgba(255,255,255,0.2); border-radius: 99px; overflow: hidden; }
+    .prog-fill { height: 100%; background: linear-gradient(90deg, var(--gold-lt), #fff); border-radius: 99px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+
+    /* ── STATUS BADGES ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 99px;
+      font-size: 0.7rem; font-weight: 600;
+    }
+    .badge-green { background: var(--green-lt); color: var(--green); }
+    .badge-yellow { background: var(--yellow-lt); color: var(--yellow); }
+    .badge-red { background: var(--red-lt); color: var(--red); }
+    .badge-navy { background: var(--parch-2); color: var(--navy); }
+
+    .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .dot-green { background: #22c55e; }
+    .dot-yellow { background: #eab308; }
+    .dot-red { background: #ef4444; }
+
+    /* ── HARIAN GRID ── */
+    .harian-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .day-card {
+      background: #fff;
+      border: 1.5px solid var(--parch-3);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px var(--shadow);
+    }
+    .day-header {
+      background: var(--navy);
+      color: #fff;
+      padding: 10px 14px;
+      font-size: 0.75rem;
+      font-family: 'Playfair Display', serif;
+    }
+    .day-header .day-name { font-weight: 700; font-size: 0.85rem; }
+    .day-header .day-jadwal {
+      font-size: 0.65rem;
+      color: var(--gold-lt);
+      opacity: 0.9;
+      margin-top: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .day-body { padding: 10px 12px; max-height: 260px; overflow-y: auto; }
+    .day-peserta-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--parch-2);
+      font-size: 0.75rem;
+    }
+    .day-peserta-row:last-child { border-bottom: none; }
+    .dpr-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--ink-3);
+      width: 30px;
+      flex-shrink: 0;
+    }
+    .dpr-nama { flex: 1; color: var(--ink); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .day-stats {
+      display: flex; gap: 8px;
+      padding: 8px 12px;
+      background: var(--parch);
+      font-size: 0.7rem;
+      border-top: 1px solid var(--parch-3);
+    }
+    .ds-item { display: flex; align-items: center; gap: 4px; }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1.5px solid var(--parch-3);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      background: #fff;
+    }
+    thead tr { background: var(--navy); }
+    thead th {
+      color: #fff;
+      padding: 11px 14px;
+      text-align: left;
+      font-family: 'Playfair Display', serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    thead th:first-child { border-radius: 8px 0 0 0; }
+    thead th:last-child { border-radius: 0 8px 0 0; }
+    tbody tr { border-bottom: 1px solid var(--parch-2); transition: background var(--tr); }
+    tbody tr:hover { background: var(--parch); }
+    tbody tr:last-child { border-bottom: none; }
+    td { padding: 9px 14px; color: var(--ink-2); vertical-align: middle; }
+    td.id-cell {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--ink-3);
+    }
+    td.nama-cell { font-weight: 600; color: var(--ink); }
+    .clickable { cursor: pointer; }
+    .clickable:hover td { background: var(--parch-2) !important; }
+
+    /* ── SEARCH / FILTER BAR ── */
+    .filter-bar {
+      display: flex; gap: 10px; align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .filter-bar input, .filter-bar select {
+      padding: 8px 13px;
+      border: 1.5px solid var(--parch-3);
+      border-radius: 9px;
+      font-family: 'Lora', serif;
+      font-size: 0.82rem;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+      transition: border-color var(--tr);
+    }
+    .filter-bar input:focus, .filter-bar select:focus { border-color: var(--navy); }
+    .filter-bar input { min-width: 200px; }
+
+    /* ── DETAIL AUDIT PANEL ── */
+    .detail-panel {
+      background: #fff;
+      border: 1.5px solid var(--parch-3);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: 0 2px 12px var(--shadow);
+    }
+    .detail-header {
+      display: flex; align-items: center; gap: 14px;
+      padding-bottom: 16px;
+      border-bottom: 1.5px solid var(--parch-3);
+      margin-bottom: 18px;
+    }
+    .detail-avatar {
+      width: 50px; height: 50px;
+      background: linear-gradient(135deg, var(--navy), var(--navy-3));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .detail-name { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--navy); font-weight: 700; }
+    .detail-id { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--ink-3); margin-top: 2px; }
+    .detail-stats {
+      display: flex; gap: 14px; flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .ds-card {
+      background: var(--parch);
+      border: 1px solid var(--parch-3);
+      border-radius: 10px;
+      padding: 12px 16px;
+      text-align: center;
+      min-width: 90px;
+    }
+    .ds-card .num { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; color: var(--navy); }
+    .ds-card .lbl { font-size: 0.68rem; color: var(--ink-3); margin-top: 3px; }
+    .ds-card.red .num { color: var(--red); }
+    .ds-card.green .num { color: var(--green); }
+
+    .detail-empty {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--ink-3);
+      font-style: italic;
+    }
+    .detail-empty .big { font-size: 2.5rem; margin-bottom: 10px; }
+
+    /* Riwayat timeline */
+    .timeline { list-style: none; padding: 0; }
+    .tl-item {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--parch-3);
+      font-size: 0.78rem;
+    }
+    .tl-item:last-child { border-bottom: none; }
+    .tl-date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--ink-3);
+      width: 78px;
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+    .tl-bacaan { color: var(--navy); font-weight: 600; }
+    .tl-ref { color: var(--ink-3); font-style: italic; margin-top: 2px; font-size: 0.72rem; }
+
+    /* ── REKAP TABLE ── */
+    .pct-bar {
+      height: 6px;
+      background: var(--parch-3);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 4px;
+      min-width: 60px;
+    }
+    .pct-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--navy), var(--gold));
+      border-radius: 99px;
+    }
+
+    /* ── ARSIP ── */
+    .arsip-list { display: flex; flex-direction: column; gap: 10px; }
+    .arsip-item {
+      display: flex; align-items: center; gap: 14px;
+      background: #fff;
+      border: 1.5px solid var(--parch-3);
+      border-radius: 10px;
+      padding: 14px 18px;
+      box-shadow: 0 1px 6px var(--shadow);
+      transition: all var(--tr);
+    }
+    .arsip-item:hover { border-color: var(--navy); box-shadow: 0 3px 14px var(--shadow-d); }
+    .arsip-icon { font-size: 1.4rem; flex-shrink: 0; }
+    .arsip-info { flex: 1; }
+    .arsip-kitab { font-family: 'Playfair Display', serif; font-size: 0.95rem; font-weight: 700; color: var(--navy); }
+    .arsip-period { font-size: 0.72rem; color: var(--ink-3); margin-top: 2px; }
+    .arsip-prog { font-size: 0.72rem; color: var(--ink-3); margin-top: 2px; }
+
+    /* ── EXPORT ── */
+    .export-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+    }
+    .export-card {
+      background: #fff;
+      border: 1.5px solid var(--parch-3);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 10px var(--shadow);
+      cursor: pointer;
+      transition: all var(--tr);
+    }
+    .export-card:hover { border-color: var(--navy); transform: translateY(-2px); box-shadow: 0 6px 20px var(--shadow-d); }
+    .export-card:active { transform: scale(0.97); }
+    .export-card .icon { font-size: 2.2rem; margin-bottom: 10px; }
+    .export-card h3 { font-family: 'Playfair Display', serif; font-size: 0.95rem; color: var(--navy); margin-bottom: 5px; }
+    .export-card p { font-size: 0.72rem; color: var(--ink-3); line-height: 1.5; }
+
+    /* ── LOADING / TOAST ── */
+    .loading-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15, 35, 60, 0.5);
+      z-index: 9000;
+      display: flex; align-items: center; justify-content: center;
+      display: none;
+    }
+    .loading-overlay.show { display: flex; }
+    .loading-box {
+      background: #fff;
+      border-radius: 14px;
+      padding: 28px 36px;
+      text-align: center;
+      box-shadow: 0 8px 40px var(--shadow-d);
+      font-family: 'Playfair Display', serif;
+      color: var(--navy);
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--parch-3);
+      border-top-color: var(--navy);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: var(--ink);
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 99px;
+      font-size: 0.82rem;
+      opacity: 0; pointer-events: none;
+      transition: all 0.3s;
+      z-index: 9999;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ══════════════════════════════════════════
+       RESPONSIVE — Touch & Tablet Friendly
+       Samsung Tab 10.1 Portrait  : 800×1280
+       Samsung Tab 10.1 Landscape : 1280×800
+       Laptop                     : ≥1366px
+    ══════════════════════════════════════════ */
+
+    /* Global touch helpers */
+    * { -webkit-tap-highlight-color: transparent; }
+    .main { -webkit-overflow-scrolling: touch; }
+    .day-body, tbody { -webkit-overflow-scrolling: touch; }
+
+    /* ── MOBILE < 600px ── */
+    @media (max-width: 599px) {
+      .sidebar { width: 56px; }
+      .sidebar-logo, .nav-section-title, .sidebar-footer,
+      .nav-item span:not(.ni) { display: none; }
+      .nav-item { justify-content: center; padding: 13px; }
+      .main { margin-left: 56px; padding: 12px 10px 72px; }
+      #bottom-bar { left: 56px; }
+      .harian-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ── SAMSUNG TAB 10.1 PORTRAIT — 600px–800px ── */
+    @media (min-width: 600px) and (max-width: 840px) and (orientation: portrait) {
+      /* Sidebar ramping tapi tetap tampil teks */
+      .sidebar { width: 170px; padding: 18px 0 14px; }
+      .sidebar-logo { padding: 0 14px 16px; margin-bottom: 12px; }
+      .sidebar-logo .logo-symbol { width: 46px; height: 46px; }
+      .sidebar-logo h1 { font-size: 0.76rem; line-height: 1.35; }
+      .sidebar-logo p { font-size: 0.58rem; }
+      .nav-item {
+        padding: 12px 16px; font-size: 0.82rem; gap: 10px;
+        -webkit-user-select: none; user-select: none;
+      }
+      .nav-item:active { background: rgba(255,255,255,0.15); }
+      .nav-item .ni { font-size: 1.1rem; }
+      .sidebar-footer { font-size: 0.62rem; padding: 10px 14px; }
+
+      .main { margin-left: 170px; padding: 18px 16px 72px; }
+      #bottom-bar { left: 170px; }
+
+      /* Tabel */
+      table { font-size: 0.85rem; }
+      td { padding: 11px 12px; }
+      thead th { font-size: 0.72rem; padding: 10px 12px; }
+      td.nama-cell { font-size: 0.88rem; }
+      td.id-cell { font-size: 0.72rem; }
+      tbody tr { min-height: 48px; }
+
+      /* Stats */
+      .stat-num { font-size: 2.2rem; }
+      .stat-lbl { font-size: 0.76rem; }
+      .stat-card { padding: 16px 14px; }
+
+      /* Harian grid 3 kolom — pas untuk portrait 800px */
+      .harian-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      .dpr-nama { font-size: 0.8rem; }
+      .dpr-id { font-size: 0.68rem; }
+      .day-header .day-name { font-size: 0.88rem; }
+      .day-header .day-jadwal { font-size: 0.68rem; }
+      .day-body { max-height: 280px; }
+
+      /* Program card */
+      .program-kitab { font-size: 1.9rem; }
+      .pm-val { font-size: 0.95rem; }
+
+      /* Filter bar */
+      .filter-bar input, .filter-bar select {
+        padding: 10px 12px; font-size: 0.85rem; min-height: 44px;
+      }
+      .filter-bar input { min-width: 180px; }
+      .refresh-btn { padding: 10px 16px; font-size: 0.84rem; min-height: 44px; }
+
+      /* Page header */
+      .page-header h2 { font-size: 1.3rem; }
+      .page-header p { font-size: 0.78rem; }
+
+      /* Badge & dot */
+      .badge { font-size: 0.76rem; padding: 4px 11px; }
+      .dot { width: 11px; height: 11px; }
+
+      /* Timeline */
+      .tl-item { padding: 9px 0; }
+      .tl-bacaan { font-size: 0.88rem; }
+      .tl-date { font-size: 0.74rem; width: 80px; }
+      .tl-ref { font-size: 0.72rem; }
+
+      /* Tombol edit/hapus */
+      .btn-edit, .btn-hapus {
+        padding: 6px 12px; font-size: 0.75rem; min-height: 34px;
+      }
+
+      /* Detail audit */
+      .detail-name { font-size: 1.1rem; }
+      .ds-card .num { font-size: 1.5rem; }
+      .detail-avatar { width: 52px; height: 52px; font-size: 1.3rem; }
+
+      /* Progress bar */
+      .pct-bar { height: 7px; }
+      .pct-fill { height: 7px; }
+
+      /* Modal */
+      .modal-card { max-width: 460px; padding: 28px 24px 22px; }
+      .modal-field input, .modal-field textarea {
+        padding: 11px 13px; font-size: 0.88rem; min-height: 46px;
+      }
+      .modal-field textarea { min-height: 90px; }
+      .btn-batal, .btn-simpan, .btn-hapus-confirm {
+        padding: 11px 20px; font-size: 0.86rem; min-height: 46px;
+      }
+    }
+
+    /* ── SAMSUNG TAB 10.1 LANDSCAPE + TABLET LANDSCAPE — 841px–1365px ── */
+    @media (min-width: 841px) and (max-width: 1365px) {
+      /* Sidebar proporsional */
+      .sidebar { width: 200px; padding: 18px 0 14px; }
+      .sidebar-logo { padding: 0 16px 18px; margin-bottom: 14px; }
+      .sidebar-logo .logo-symbol { width: 50px; height: 50px; }
+      .sidebar-logo h1 { font-size: 0.8rem; }
+      .sidebar-logo p { font-size: 0.6rem; }
+      .nav-item {
+        padding: 12px 18px; font-size: 0.85rem; gap: 11px;
+        -webkit-user-select: none; user-select: none;
+      }
+      .nav-item:active { background: rgba(255,255,255,0.15); }
+      .nav-item .ni { font-size: 1.15rem; }
+
+      .main { margin-left: 200px; padding: 20px 22px 72px; }
+      #bottom-bar { left: 200px; }
+
+      /* Tabel touch-friendly */
+      table { font-size: 0.9rem; }
+      td { padding: 12px 14px; }
+      thead th { font-size: 0.76rem; padding: 11px 14px; }
+      td.nama-cell { font-size: 0.92rem; }
+      td.id-cell { font-size: 0.76rem; }
+      tbody tr { min-height: 50px; }
+
+      /* Stats */
+      .stat-num { font-size: 2.5rem; }
+      .stat-lbl { font-size: 0.8rem; }
+      .stat-card { padding: 18px 16px; }
+
+      /* Badge & dot */
+      .badge { font-size: 0.78rem; padding: 5px 12px; }
+      .dot { width: 11px; height: 11px; }
+
+      /* Harian grid 4 kolom */
+      .harian-grid { grid-template-columns: repeat(4, 1fr); gap: 11px; }
+      .dpr-nama { font-size: 0.83rem; }
+      .dpr-id { font-size: 0.7rem; }
+      .day-header .day-name { font-size: 0.92rem; }
+      .day-header .day-jadwal { font-size: 0.7rem; }
+      .day-body { max-height: 300px; }
+
+      /* Program card */
+      .program-kitab { font-size: 2.1rem; }
+      .pm-val { font-size: 1rem; }
+
+      /* Filter bar */
+      .filter-bar input, .filter-bar select {
+        padding: 11px 14px; font-size: 0.88rem; min-height: 46px;
+      }
+      .filter-bar input { min-width: 220px; }
+      .refresh-btn { padding: 11px 18px; font-size: 0.86rem; min-height: 46px; }
+
+      /* Page header */
+      .page-header h2 { font-size: 1.45rem; }
+      .page-header p { font-size: 0.8rem; }
+
+      /* Timeline */
+      .tl-item { padding: 10px 0; }
+      .tl-bacaan { font-size: 0.9rem; }
+      .tl-date { font-size: 0.76rem; width: 82px; }
+      .tl-ref { font-size: 0.74rem; }
+
+      /* Tombol edit/hapus */
+      .btn-edit, .btn-hapus {
+        padding: 6px 13px; font-size: 0.77rem; min-height: 35px;
+      }
+
+      /* Detail audit */
+      .detail-name { font-size: 1.2rem; }
+      .ds-card .num { font-size: 1.6rem; }
+      .detail-avatar { width: 54px; height: 54px; font-size: 1.35rem; }
+
+      /* Progress bar */
+      .pct-bar { height: 8px; }
+      .pct-fill { height: 8px; }
+
+      /* Modal */
+      .modal-card { max-width: 520px; padding: 32px 30px 26px; }
+      .modal-field input, .modal-field textarea {
+        padding: 12px 14px; font-size: 0.9rem; min-height: 47px;
+      }
+      .modal-field textarea { min-height: 100px; }
+      .btn-batal, .btn-simpan, .btn-hapus-confirm {
+        padding: 12px 22px; font-size: 0.88rem; min-height: 47px;
+      }
+    }
+
+    /* ── LAPTOP ≥ 1366px ── */
+    @media (min-width: 1366px) {
+      .sidebar { width: 220px; padding: 24px 0 18px; }
+      .sidebar-logo { padding: 0 20px 22px; margin-bottom: 18px; }
+      .sidebar-logo .logo-symbol { width: 56px; height: 56px; }
+      .sidebar-logo h1 { font-size: 0.86rem; }
+      .nav-item { padding: 11px 22px; font-size: 0.88rem; gap: 12px; }
+      .nav-item .ni { font-size: 1.1rem; }
+
+      .main { margin-left: 220px; padding: 28px 32px 80px; }
+      #bottom-bar { left: 220px; }
+
+      table { font-size: 0.88rem; }
+      td { padding: 12px 16px; }
+      thead th { font-size: 0.74rem; padding: 11px 16px; }
+      td.nama-cell { font-size: 0.92rem; }
+
+      .stat-num { font-size: 2.8rem; }
+      .stat-lbl { font-size: 0.82rem; }
+      .stat-card { padding: 22px 18px; }
+
+      .harian-grid { grid-template-columns: repeat(5, 1fr); gap: 14px; }
+      .day-body { max-height: 340px; }
+
+      .program-kitab { font-size: 2.4rem; }
+      .pm-val { font-size: 1.05rem; }
+
+      .page-header h2 { font-size: 1.65rem; }
+
+      .modal-card { max-width: 540px; }
+    }
+
+    /* ══════════════════════════════════════════
+       BOTTOM ACTION BAR — selalu terlihat di bawah
+    ══════════════════════════════════════════ */
+    #bottom-bar {
+      position: fixed; bottom: 0; left: 220px; right: 0;
+      height: 54px;
+      background: #fff;
+      border-top: 1.5px solid var(--parch-3);
+      display: flex; align-items: center;
+      padding: 0 22px; gap: 14px;
+      z-index: 500;
+      box-shadow: 0 -4px 16px rgba(26,45,65,0.08);
+    }
+    #bottom-bar .bb-refresh {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--navy); color: #fff;
+      border: none; border-radius: 10px;
+      padding: 9px 18px; font-family: 'Lora', serif;
+      font-size: 0.85rem; cursor: pointer;
+      transition: all 0.15s; min-height: 40px;
+      -webkit-user-select: none; user-select: none;
+    }
+    #bottom-bar .bb-refresh:active { transform: scale(0.96); background: var(--navy-2); }
+    #bottom-bar .bb-time {
+      font-size: 0.76rem; color: var(--ink-3);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    #bottom-bar .bb-status {
+      margin-left: auto;
+      font-size: 0.74rem; color: var(--ink-3);
+      display: flex; align-items: center; gap: 6px;
+    }
+    #bottom-bar .bb-dot-live {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green);
+      animation: pulse-live 2s infinite;
+    }
+    @keyframes pulse-live {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* no-data */
+    .empty { text-align: center; padding: 40px; color: var(--ink-3); font-style: italic; }
+
+    /* select peserta hint */
+    #detail-hint { display: block; }
+    #detail-content { display: none; }
+
+    /* ── TOMBOL EDIT/HAPUS DI TIMELINE ── */
+    .tl-actions {
+      display: flex; gap: 6px; margin-top: 5px;
+    }
+    .btn-edit, .btn-hapus {
+      border: none; border-radius: 6px; cursor: pointer;
+      font-size: 0.7rem; padding: 3px 10px;
+      font-family: 'Lora', serif;
+      transition: all 0.15s;
+    }
+    .btn-edit  { background: var(--parch-2); color: var(--navy); border: 1px solid var(--parch-3); }
+    .btn-edit:hover  { background: var(--navy); color: #fff; }
+    .btn-hapus { background: var(--red-lt); color: var(--red); border: 1px solid #f5c0bb; }
+    .btn-hapus:hover { background: var(--red); color: #fff; }
+
+    /* ── MODAL EDIT JURNAL ── */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 9000;
+      background: rgba(10,20,40,0.55); backdrop-filter: blur(3px);
+      align-items: center; justify-content: center;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal-card {
+      background: #fff; border-radius: var(--radius);
+      padding: 28px 28px 22px; width: 100%; max-width: 480px;
+      box-shadow: 0 12px 50px rgba(10,20,40,0.35);
+      animation: fadeUp 0.2s ease;
+    }
+    .modal-card h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem; color: var(--navy);
+      margin-bottom: 18px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .modal-field { margin-bottom: 14px; }
+    .modal-field label {
+      display: block; font-size: 0.72rem; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--ink-3);
+      margin-bottom: 5px; font-family: 'Playfair Display', serif;
+    }
+    .modal-field input, .modal-field textarea {
+      width: 100%; border: 1.5px solid var(--parch-3);
+      border-radius: 9px; padding: 9px 12px;
+      font-family: 'Lora', serif; font-size: 0.85rem;
+      color: var(--ink); background: var(--parch);
+      transition: border 0.15s; resize: vertical;
+    }
+    .modal-field input:focus, .modal-field textarea:focus {
+      outline: none; border-color: var(--navy);
+      background: #fff;
+    }
+    .modal-info {
+      font-size: 0.72rem; color: var(--ink-3);
+      background: var(--parch-2); border-radius: 8px;
+      padding: 8px 12px; margin-bottom: 18px;
+    }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .btn-batal {
+      border: 1.5px solid var(--parch-3); background: #fff;
+      color: var(--ink-3); border-radius: 9px; padding: 9px 18px;
+      cursor: pointer; font-family: 'Lora', serif; font-size: 0.82rem;
+      transition: all 0.15s;
+    }
+    .btn-batal:hover { background: var(--parch); color: var(--ink); }
+    .btn-simpan {
+      background: var(--navy); color: #fff;
+      border: none; border-radius: 9px; padding: 9px 20px;
+      cursor: pointer; font-family: 'Lora', serif; font-size: 0.82rem;
+      transition: all 0.15s;
+    }
+    .btn-simpan:hover { background: var(--navy-3); }
+    .btn-simpan:active { transform: scale(0.97); }
+
+    /* ── MODAL KONFIRMASI HAPUS ── */
+    .modal-hapus-body { text-align: center; padding: 8px 0 16px; }
+    .modal-hapus-body .hapus-icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .modal-hapus-body p { font-size: 0.88rem; color: var(--ink-2); line-height: 1.6; }
+    .modal-hapus-body strong { color: var(--red); }
+    .btn-hapus-confirm {
+      background: var(--red); color: #fff;
+      border: none; border-radius: 9px; padding: 9px 20px;
+      cursor: pointer; font-family: 'Lora', serif; font-size: 0.82rem;
+      transition: all 0.15s;
+    }
+    .btn-hapus-confirm:hover { background: #a93226; }
+  </style>
+</head>
+<body>
+
+<!-- ═══ LOGIN SCREEN (Firebase Email Auth) ═══ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <img src="icon-192.png" alt="Logo" class="login-logo">
+    <h2>Satu Bab Setiap hari</h2>
+    <p class="login-sub">Admin Panel &mdash; Masuk untuk melanjutkan</p>
+    <input id="loginEmail"    class="login-field" type="email"    placeholder="Email admin" autocomplete="email">
+    <input id="loginPassword" class="login-field" type="password" placeholder="Password"    autocomplete="current-password">
+    <div id="loginError"></div>
+    <button id="loginBtn" onclick="doLogin()">Masuk</button>
+    <p class="login-ver">Satu Bab Setiap Hari &middot; eleazar &middot; 2026</p>
+  </div>
+</div>
+
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-symbol" style="padding:0;overflow:hidden">
+  <img src="icon-192.png" alt="eleazar" style="width:100%;height:100%;object-fit:cover;object-position:center top">
+</div>
+    <h1>Satu Bab<br>Setiap hari</h1>
+    <p style="color:var(--gold);font-size:0.62rem;letter-spacing:1.2px;text-transform:uppercase;margin-top:4px;opacity:0.9">Project eleazar</p>
+    <p>Admin Panel</p>
+  </div>
+
+  <span class="nav-section-title">Dashboard</span>
+  <a class="nav-item aktif" data-target="program" onclick="gotoSection('program')">
+    <span class="ni">📋</span><span>Program Aktif</span>
+  </a>
+  <a class="nav-item" data-target="harian" onclick="gotoSection('harian')">
+    <span class="ni">📅</span><span>Monitoring Harian</span>
+  </a>
+
+  <span class="nav-section-title">Peserta</span>
+  <a class="nav-item" data-target="semua" onclick="gotoSection('semua')">
+    <span class="ni">👥</span><span>Semua Peserta</span>
+  </a>
+  <a class="nav-item" data-target="audit" onclick="gotoSection('audit')">
+    <span class="ni">🔍</span><span>Detail Audit</span>
+  </a>
+  <a class="nav-item" data-target="rekap" onclick="gotoSection('rekap')">
+    <span class="ni">📊</span><span>Rekap Kitab</span>
+  </a>
+
+  <span class="nav-section-title">Data</span>
+  <a class="nav-item" data-target="arsip" onclick="gotoSection('arsip')">
+    <span class="ni">🗂️</span><span>Arsip Program</span>
+  </a>
+  <a class="nav-item" data-target="export" onclick="gotoSection('export')">
+    <span class="ni">📤</span><span>Export & Hardcopy</span>
+  </a>
+
+  <div id="adminEmailLabel"></div>
+  <button class="btn-keluar" onclick="doLogout()">
+    <span>🚪</span><span>Keluar</span>
+  </button>
+  <div class="sidebar-footer">
+    Admin — eleazar
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<main class="main">
+
+  <!-- ─── 1. PROGRAM AKTIF ─── -->
+  <section class="section aktif" id="sec-program">
+    <div class="page-header">
+      <div>
+        <h2>Program Aktif</h2>
+        <p>Ringkasan program baca Kitab Suci yang sedang berjalan</p>
+      </div>
+      <button class="refresh-btn" onclick="muat()">🔄 Refresh Data</button>
+    </div>
+
+    <div class="program-card" id="programCard">
+      <div class="program-card-inner">
+        <div class="program-label">Program Aktif</div>
+        <div class="program-kitab" id="pc-kitab">Memuat…</div>
+        <div class="program-period" id="pc-period">—</div>
+        <div class="program-meta">
+          <div class="pm-item"><div class="pm-key">Target Bab</div><div class="pm-val" id="pc-target">—</div></div>
+          <div class="pm-item"><div class="pm-key">Hari Ini</div><div class="pm-val" id="pc-today">—</div></div>
+          <div class="pm-item"><div class="pm-key">Hari ke-</div><div class="pm-val" id="pc-dayno">—</div></div>
+          <div class="pm-item"><div class="pm-key">Sisa Hari</div><div class="pm-val" id="pc-sisa">—</div></div>
+        </div>
+        <div class="prog-wrap">
+          <div class="prog-top">
+            <span id="pc-prog-lbl">Progress keseluruhan</span>
+            <span id="pc-prog-pct">0%</span>
+          </div>
+          <div class="prog-bar"><div class="prog-fill" id="pc-prog-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <div class="stat-num" id="st-total">—</div>
+        <div class="stat-lbl">Total Jurnal Firebase</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-num" id="st-tepat">—</div>
+        <div class="stat-lbl">Input Hari Ini</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-num" id="st-late">—</div>
+        <div class="stat-lbl">Belum Hari Ini</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-num" id="st-none">—</div>
+        <div class="stat-lbl">Belum Pernah Input</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Urutan Program (Otomatis Berganti)</div>
+      <div id="jadwalList"></div>
+    </div>
+  </section>
+
+  <!-- ─── 2. MONITORING HARIAN ─── -->
+  <section class="section" id="sec-harian">
+    <div class="page-header">
+      <div>
+        <h2>Monitoring Harian</h2>
+        <p>Hari ini + 3 hari mundur · Status input per peserta</p>
+      </div>
+      <button class="refresh-btn" onclick="muat()">🔄 Refresh</button>
+    </div>
+
+    <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--ink-3)">
+        <span class="dot dot-green"></span> Tepat (input sesuai jadwal)
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--ink-3)">
+        <span class="dot dot-yellow"></span> Terlambat (masih toleransi)
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--ink-3)">
+        <span class="dot dot-red"></span> Belum input
+      </div>
+    </div>
+
+    <div class="harian-grid" id="harianGrid"></div>
+  </section>
+
+  <!-- ─── 3. SEMUA PESERTA ─── -->
+  <section class="section" id="sec-semua">
+    <div class="page-header">
+      <div>
+        <h2>Monitoring Semua Peserta</h2>
+        <p>Status input semua anggota · Klik baris untuk detail audit</p>
+      </div>
+      <button class="refresh-btn" onclick="muat()">🔄 Refresh</button>
+    </div>
+
+    <div class="filter-bar">
+      <input type="text" id="searchPeserta" placeholder="🔍 Cari nama / ID…" oninput="renderTabelPeserta()">
+      <select id="filterStatus" onchange="renderTabelPeserta()">
+        <option value="semua">Semua Status</option>
+        <option value="tepat">✅ Input Hari Ini</option>
+        <option value="late">⚠️ Terlambat</option>
+        <option value="none">❌ Belum Input</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table id="tabelPeserta">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nama</th>
+            <th>Jadwal Hari Ini</th>
+            <th>Input Terakhir</th>
+            <th>Total Jurnal</th>
+            <th>Streak</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tabelBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─── 4. DETAIL AUDIT ─── -->
+  <section class="section" id="sec-audit">
+    <div class="page-header">
+      <div>
+        <h2>Detail Audit Peserta</h2>
+        <p>Riwayat, streak, keterlambatan, dan capaian per anggota</p>
+      </div>
+    </div>
+
+    <div class="filter-bar" style="margin-bottom:18px">
+      <select id="auditSelect" onchange="renderAudit(this.value)" style="min-width:220px">
+        <option value="">— Pilih Peserta —</option>
+      </select>
+    </div>
+
+    <div class="detail-empty" id="detail-hint">
+      <div class="big">🔎</div>
+      <p>Pilih peserta dari daftar di atas untuk melihat detail audit</p>
+    </div>
+
+    <div id="detail-content">
+      <div class="detail-panel">
+        <div class="detail-header">
+          <div class="detail-avatar" id="da-avatar">?</div>
+          <div>
+            <div class="detail-name" id="da-nama">—</div>
+            <div class="detail-id" id="da-id">—</div>
+          </div>
+        </div>
+        <div class="detail-stats" id="da-stats"></div>
+        <div class="card-title">Riwayat Bacaan</div>
+        <ul class="timeline" id="da-timeline"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 5. REKAP KITAB ─── -->
+  <section class="section" id="sec-rekap">
+    <div class="page-header">
+      <div>
+        <h2>Rekap Kitab yang Sudah Selesai</h2>
+        <p>Rapor komunitas — capaian per peserta per kitab</p>
+      </div>
+      <button class="refresh-btn" onclick="muat()">🔄 Refresh</button>
+    </div>
+
+    <div id="rekapContainer"></div>
+  </section>
+
+  <!-- ─── 6. ARSIP ─── -->
+  <section class="section" id="sec-arsip">
+    <div class="page-header">
+      <div>
+        <h2>Arsip Program</h2>
+        <p>Semua periode program — selesai maupun aktif</p>
+      </div>
+    </div>
+    <div class="arsip-list" id="arsipList"></div>
+  </section>
+
+  <!-- ─── 7. EXPORT ─── -->
+  <section class="section" id="sec-export">
+    <div class="page-header">
+      <div>
+        <h2>Export & Hardcopy</h2>
+        <p>Download data untuk arsip atau cetak</p>
+      </div>
+    </div>
+
+    <div class="export-grid">
+      <div class="export-card" onclick="exportExcel('harian')">
+        <div class="icon">📊</div>
+        <h3>Export Monitoring Harian</h3>
+        <p>Data 4 hari terakhir — status input per peserta (.xlsx)</p>
+      </div>
+      <div class="export-card" onclick="exportExcel('semua')">
+        <div class="icon">📋</div>
+        <h3>Export Semua Peserta</h3>
+        <p>Seluruh data peserta + total jurnal + streak (.xlsx)</p>
+      </div>
+      <div class="export-card" onclick="exportExcel('rekap')">
+        <div class="icon">🏆</div>
+        <h3>Export Rekap Kitab</h3>
+        <p>Capaian per peserta per kitab dalam program (.xlsx)</p>
+      </div>
+      <div class="export-card" onclick="exportExcel('semua-jurnal')">
+        <div class="icon">📚</div>
+        <h3>Export Semua Jurnal</h3>
+        <p>Seluruh entri jurnal dari Firebase (.xlsx)</p>
+      </div>
+      <div class="export-card" onclick="cetakHalaman('harian')">
+        <div class="icon">🖨️</div>
+        <h3>Cetak Monitoring Harian</h3>
+        <p>Print / simpan PDF tabel monitoring 4 hari</p>
+      </div>
+      <div class="export-card" onclick="cetakHalaman('rekap')">
+        <div class="icon">📄</div>
+        <h3>Cetak Rekap Kitab</h3>
+        <p>Print / simpan PDF rapor komunitas</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+
+
+<!-- ═══ MODAL EDIT JURNAL ═══ -->
+<div class="modal-backdrop" id="modalEdit">
+  <div class="modal-card">
+    <h3>✏️ Edit Jurnal</h3>
+    <div class="modal-info" id="editInfo">—</div>
+    <div class="modal-field">
+      <label>Bacaan (contoh: Kej 8)</label>
+      <input type="text" id="editBacaan" placeholder="mis. Kej 8">
+    </div>
+    <div class="modal-field">
+      <label>Refleksi</label>
+      <textarea id="editRefleksi" rows="4" placeholder="Isi refleksi…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-batal" onclick="tutupModalEdit()">Batal</button>
+      <button class="btn-simpan" onclick="simpanEdit()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL KONFIRMASI HAPUS ═══ -->
+<div class="modal-backdrop" id="modalHapus">
+  <div class="modal-card" style="max-width:380px">
+    <div class="modal-hapus-body">
+      <div class="hapus-icon">🗑️</div>
+      <p>Yakin ingin menghapus jurnal ini?<br>
+      <strong id="hapusInfo">—</strong><br>
+      <span style="font-size:0.78rem;color:var(--ink-3)">Tindakan ini tidak bisa dibatalkan.</span></p>
+    </div>
+    <div class="modal-actions" style="justify-content:center;gap:14px">
+      <button class="btn-batal" onclick="tutupModalHapus()">Batal</button>
+      <button class="btn-hapus-confirm" onclick="konfirmasiHapus()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LOADING ═══ -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    Mengambil data dari Firebase…
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ═══ BOTTOM ACTION BAR ═══ -->
+<div id="bottom-bar">
+  <button class="bb-refresh" onclick="muatUlang()">
+    🔄 Refresh Data
+  </button>
+  <span class="bb-time" id="bb-waktu">—</span>
+  <div class="bb-status">
+    <span class="bb-dot-live"></span>
+    <span id="bb-jml">—</span>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// DATA KONFIGURASI (sama persis dengan app utama)
+// ════════════════════════════════════════════
+const DAFTAR_PESERTA = [
+  {id:"001",nama:"Anton"},{id:"002",nama:"Hermy"},{id:"003",nama:"Tri"},
+  {id:"004",nama:"Wening"},{id:"005",nama:"Ari"},{id:"006",nama:"Dian"},
+  {id:"007",nama:"Christine"},{id:"008",nama:"Rini"},{id:"009",nama:"Ageng"},
+  {id:"010",nama:"Agnes"},{id:"011",nama:"Yati"},{id:"012",nama:"Dian"},
+  {id:"013",nama:"Nanang"},{id:"014",nama:"Lila"},{id:"015",nama:"Iien"},
+  {id:"016",nama:"Heri"},{id:"017",nama:"Nugroho"},{id:"018",nama:"Tantra"},
+  {id:"019",nama:"Martin"},{id:"020",nama:"Sapto"},{id:"021",nama:"Eka"},
+  {id:"022",nama:"Anton B"},{id:"023",nama:"Iko"},{id:"024",nama:"Danik"},
+  {id:"025",nama:"Narni"},{id:"026",nama:"Ratih"},{id:"027",nama:"Retno"},
+  {id:"028",nama:"MM Sri"},{id:"029",nama:"Pia"},{id:"030",nama:"Maria"},
+  {id:"031",nama:"Djalu"},{id:"032",nama:"Agung"},{id:"033",nama:"Tutik"},
+  {id:"034",nama:"Sri"},{id:"035",nama:"Utha"},{id:"036",nama:"Lius"},
+  {id:"037",nama:"Agus"},{id:"038",nama:"Agnes S"},{id:"039",nama:"Flor"},
+  {id:"040",nama:"Yusi"},{id:"041",nama:"Yuni"},{id:"042",nama:"Nina"},
+  {id:"043",nama:"Risti"},{id:"044",nama:"Rina"},{id:"045",nama:"John Do"},
+  {id:"046",nama:"Andre"},{id:"047",nama:"Daniel"},{id:"048",nama:"Surat"}
+];
+
+const JADWAL_PROGRAM = [
+  // ── 2026 ──
+  { nama:'Kejadian',    ab:'Kej',  babMulai:32, babAkhir:50, mulai:'2026-06-01', selesai:'2026-06-19',
+    regex:/^(?:Kej(?:adian)?)\s+(\d+)/i },
+  { nama:'Keluaran',    ab:'Kel',  babMulai:1,  babAkhir:40, mulai:'2026-06-20', selesai:'2026-07-29',
+    regex:/^(?:Kel(?:uaran)?)\s+(\d+)/i },
+  { nama:'Imamat',      ab:'Im',   babMulai:1,  babAkhir:27, mulai:'2026-07-30', selesai:'2026-08-25',
+    regex:/^(?:Im(?:amat)?)\s+(\d+)/i },
+  { nama:'Bilangan',    ab:'Bil',  babMulai:1,  babAkhir:36, mulai:'2026-08-26', selesai:'2026-09-30',
+    regex:/^(?:Bil(?:angan)?)\s+(\d+)/i },
+  { nama:'Ulangan',     ab:'Ul',   babMulai:1,  babAkhir:34, mulai:'2026-10-01', selesai:'2026-11-03',
+    regex:/^(?:Ul(?:angan)?)\s+(\d+)/i },
+  { nama:'Yosua',       ab:'Yos',  babMulai:1,  babAkhir:24, mulai:'2026-11-04', selesai:'2026-11-27',
+    regex:/^(?:Yos(?:ua)?)\s+(\d+)/i },
+  { nama:'Hakim-hakim', ab:'Hak',  babMulai:1,  babAkhir:21, mulai:'2026-11-28', selesai:'2026-12-18',
+    regex:/^(?:Hak(?:im(?:-hakim)?)?)\s+(\d+)/i },
+  { nama:'Rut',         ab:'Rut',  babMulai:1,  babAkhir:4,  mulai:'2026-12-19', selesai:'2026-12-22',
+    regex:/^(?:Rut)\s+(\d+)/i },
+  { nama:'1 Samuel',    ab:'1Sam', babMulai:1,  babAkhir:9,  mulai:'2026-12-23', selesai:'2026-12-31',
+    regex:/^(?:1\s*Sam(?:uel)?)\s+(\d+)/i },
+  // ── 2027 ──
+  { nama:'1 Samuel',    ab:'1Sam', babMulai:10, babAkhir:31, mulai:'2027-01-01', selesai:'2027-01-22',
+    regex:/^(?:1\s*Sam(?:uel)?)\s+(\d+)/i },
+  { nama:'2 Samuel',    ab:'2Sam', babMulai:1,  babAkhir:24, mulai:'2027-01-23', selesai:'2027-02-15',
+    regex:/^(?:2\s*Sam(?:uel)?)\s+(\d+)/i },
+  { nama:'1 Raja-raja', ab:'1Raj', babMulai:1,  babAkhir:22, mulai:'2027-02-16', selesai:'2027-03-09',
+    regex:/^(?:1\s*Raj(?:a(?:-raja)?)?)\s+(\d+)/i },
+  { nama:'2 Raja-raja', ab:'2Raj', babMulai:1,  babAkhir:25, mulai:'2027-03-10', selesai:'2027-04-03',
+    regex:/^(?:2\s*Raj(?:a(?:-raja)?)?)\s+(\d+)/i },
+  { nama:'1 Tawarikh',  ab:'1Taw', babMulai:1,  babAkhir:29, mulai:'2027-04-04', selesai:'2027-05-02',
+    regex:/^(?:1\s*Taw(?:arikh)?)\s+(\d+)/i },
+  { nama:'2 Tawarikh',  ab:'2Taw', babMulai:1,  babAkhir:36, mulai:'2027-05-03', selesai:'2027-06-07',
+    regex:/^(?:2\s*Taw(?:arikh)?)\s+(\d+)/i },
+  { nama:'Ezra',        ab:'Ezr',  babMulai:1,  babAkhir:10, mulai:'2027-06-08', selesai:'2027-06-17',
+    regex:/^(?:Ezr(?:a)?)\s+(\d+)/i },
+  { nama:'Nehemia',     ab:'Neh',  babMulai:1,  babAkhir:13, mulai:'2027-06-18', selesai:'2027-06-30',
+    regex:/^(?:Neh(?:emia)?)\s+(\d+)/i },
+  { nama:'Tobit',       ab:'Tob',  babMulai:1,  babAkhir:14, mulai:'2027-07-01', selesai:'2027-07-14',
+    regex:/^(?:Tob(?:it)?)\s+(\d+)/i },
+  { nama:'Yudit',       ab:'Ydt',  babMulai:1,  babAkhir:16, mulai:'2027-07-15', selesai:'2027-07-30',
+    regex:/^(?:Ydt|Yudit)\s+(\d+)/i },
+  { nama:'Ester',       ab:'Est',  babMulai:1,  babAkhir:10, mulai:'2027-07-31', selesai:'2027-08-09',
+    regex:/^(?:Est(?:er)?)\s+(\d+)/i },
+  { nama:'1 Makabe',    ab:'1Mak', babMulai:1,  babAkhir:16, mulai:'2027-08-10', selesai:'2027-08-25',
+    regex:/^(?:1\s*Mak(?:abe)?)\s+(\d+)/i },
+  { nama:'2 Makabe',    ab:'2Mak', babMulai:1,  babAkhir:15, mulai:'2027-08-26', selesai:'2027-09-09',
+    regex:/^(?:2\s*Mak(?:abe)?)\s+(\d+)/i },
+  { nama:'Ayub',        ab:'Ayb',  babMulai:1,  babAkhir:42, mulai:'2027-09-10', selesai:'2027-10-21',
+    regex:/^(?:Ayb|Ay(?:ub)?)\s+(\d+)/i },
+  { nama:'Mazmur',      ab:'Mzm',  babMulai:1,  babAkhir:150,mulai:'2027-10-22', selesai:'2028-03-19',
+    regex:/^(?:Mzm|Maz(?:mur)?)\s+(\d+)/i },
+  // ── 2028 ──
+  { nama:'Amsal',       ab:'Ams',  babMulai:1,  babAkhir:31, mulai:'2028-03-20', selesai:'2028-04-19',
+    regex:/^(?:Ams(?:al)?)\s+(\d+)/i },
+  { nama:'Pengkhotbah', ab:'Pkh',  babMulai:1,  babAkhir:12, mulai:'2028-04-20', selesai:'2028-05-01',
+    regex:/^(?:Pkh|Peng(?:khotbah)?)\s+(\d+)/i },
+  { nama:'Kidung Agung',ab:'Kid',  babMulai:1,  babAkhir:8,  mulai:'2028-05-02', selesai:'2028-05-09',
+    regex:/^(?:Kid(?:ung(?:\s*Agung)?)?)\s+(\d+)/i },
+  { nama:'Kebijaksanaan Salomo', ab:'Keb', babMulai:1, babAkhir:19, mulai:'2028-05-10', selesai:'2028-05-28',
+    regex:/^(?:Keb|Kbs|Wis|Kebijaksanaan(?:\s*Salomo)?)\s+(\d+)/i },
+  { nama:'Sirakh',      ab:'Sir',  babMulai:1,  babAkhir:51, mulai:'2028-05-29', selesai:'2028-07-18',
+    regex:/^(?:Sir(?:akh)?)\s+(\d+)/i },
+  { nama:'Yesaya',      ab:'Yes',  babMulai:1,  babAkhir:66, mulai:'2028-07-19', selesai:'2028-09-22',
+    regex:/^(?:Yes(?:aya)?)\s+(\d+)/i },
+  { nama:'Yeremia',     ab:'Yer',  babMulai:1,  babAkhir:52, mulai:'2028-09-23', selesai:'2028-11-13',
+    regex:/^(?:Yer(?:emia)?)\s+(\d+)/i },
+  { nama:'Barukh',      ab:'Bar',  babMulai:1,  babAkhir:6,  mulai:'2028-11-14', selesai:'2028-11-19',
+    regex:/^(?:Bar(?:ukh)?)\s+(\d+)/i },
+  { nama:'Ratapan',     ab:'Rat',  babMulai:1,  babAkhir:5,  mulai:'2028-11-20', selesai:'2028-11-24',
+    regex:/^(?:Rat(?:apan)?)\s+(\d+)/i },
+  { nama:'Yehezkiel',   ab:'Yeh',  babMulai:1,  babAkhir:48, mulai:'2028-11-25', selesai:'2029-01-11',
+    regex:/^(?:Yeh(?:ezkiel)?)\s+(\d+)/i },
+  // ── 2029 ──
+  { nama:'Daniel',      ab:'Dan',  babMulai:1,  babAkhir:14, mulai:'2029-01-12', selesai:'2029-01-25',
+    regex:/^(?:Dan(?:iel)?)\s+(\d+)/i },
+  { nama:'Hosea',       ab:'Hos',  babMulai:1,  babAkhir:14, mulai:'2029-01-26', selesai:'2029-02-08',
+    regex:/^(?:Hos(?:ea)?)\s+(\d+)/i },
+  { nama:'Yoel',        ab:'Yoel', babMulai:1,  babAkhir:3,  mulai:'2029-02-09', selesai:'2029-02-11',
+    regex:/^(?:Yoel?)\s+(\d+)/i },
+  { nama:'Amos',        ab:'Am',   babMulai:1,  babAkhir:9,  mulai:'2029-02-12', selesai:'2029-02-20',
+    regex:/^(?:Am(?:os)?)\s+(\d+)/i },
+  { nama:'Obaja',       ab:'Ob',   babMulai:1,  babAkhir:1,  mulai:'2029-02-21', selesai:'2029-02-21',
+    regex:/^(?:Ob(?:aja)?)\s+(\d+)/i },
+  { nama:'Yunus',       ab:'Yun',  babMulai:1,  babAkhir:4,  mulai:'2029-02-22', selesai:'2029-02-25',
+    regex:/^(?:Yun(?:us)?|Yns)\s+(\d+)/i },
+  { nama:'Mikha',       ab:'Mik',  babMulai:1,  babAkhir:7,  mulai:'2029-02-26', selesai:'2029-03-04',
+    regex:/^(?:Mik(?:ha)?)\s+(\d+)/i },
+  { nama:'Nahum',       ab:'Nah',  babMulai:1,  babAkhir:3,  mulai:'2029-03-05', selesai:'2029-03-07',
+    regex:/^(?:Nah(?:um)?)\s+(\d+)/i },
+  { nama:'Habakuk',     ab:'Hab',  babMulai:1,  babAkhir:3,  mulai:'2029-03-08', selesai:'2029-03-10',
+    regex:/^(?:Hab(?:akuk)?)\s+(\d+)/i },
+  { nama:'Zefanya',     ab:'Zef',  babMulai:1,  babAkhir:3,  mulai:'2029-03-11', selesai:'2029-03-13',
+    regex:/^(?:Zef(?:anya)?)\s+(\d+)/i },
+  { nama:'Hagai',       ab:'Hag',  babMulai:1,  babAkhir:2,  mulai:'2029-03-14', selesai:'2029-03-15',
+    regex:/^(?:Hag(?:ai)?)\s+(\d+)/i },
+  { nama:'Zakharia',    ab:'Zak',  babMulai:1,  babAkhir:14, mulai:'2029-03-16', selesai:'2029-03-29',
+    regex:/^(?:Za(?:k(?:h(?:aria)?)?)?)\s+(\d+)/i },
+  { nama:'Maleakhi',    ab:'Mal',  babMulai:1,  babAkhir:4,  mulai:'2029-03-30', selesai:'2029-04-02',
+    regex:/^(?:Mal(?:eakhi)?)\s+(\d+)/i },
+  { nama:'Matius',      ab:'Mat',  babMulai:1,  babAkhir:28, mulai:'2029-04-03', selesai:'2029-04-30',
+    regex:/^(?:Mat(?:ius)?)\s+(\d+)/i },
+  { nama:'Markus',      ab:'Mrk',  babMulai:1,  babAkhir:16, mulai:'2029-05-01', selesai:'2029-05-16',
+    regex:/^(?:Mrk|Mk|Mar(?:kus)?)\s+(\d+)/i },
+  { nama:'Lukas',       ab:'Luk',  babMulai:1,  babAkhir:24, mulai:'2029-05-17', selesai:'2029-06-09',
+    regex:/^(?:Luk(?:as)?|Lk)\s+(\d+)/i },
+  { nama:'Yohanes',     ab:'Yoh',  babMulai:1,  babAkhir:21, mulai:'2029-06-10', selesai:'2029-06-30',
+    regex:/^(?:Yoh(?:anes)?)\s+(\d+)/i },
+  { nama:'Kisah Para Rasul', ab:'Kis', babMulai:1, babAkhir:28, mulai:'2029-07-01', selesai:'2029-07-28',
+    regex:/^(?:Kis(?:ah(?:\s*Para\s*Rasul)?)?|Kpr)\s+(\d+)/i },
+  { nama:'Roma',        ab:'Rm',   babMulai:1,  babAkhir:16, mulai:'2029-07-29', selesai:'2029-08-13',
+    regex:/^(?:Rm|Rom(?:a)?)\s+(\d+)/i },
+  { nama:'1 Korintus',  ab:'1Kor', babMulai:1,  babAkhir:16, mulai:'2029-08-14', selesai:'2029-08-29',
+    regex:/^(?:1\s*Kor(?:intus)?|1Ko)\s+(\d+)/i },
+  { nama:'2 Korintus',  ab:'2Kor', babMulai:1,  babAkhir:13, mulai:'2029-08-30', selesai:'2029-09-11',
+    regex:/^(?:2\s*Kor(?:intus)?|2Ko)\s+(\d+)/i },
+  { nama:'Galatia',     ab:'Gal',  babMulai:1,  babAkhir:6,  mulai:'2029-09-12', selesai:'2029-09-17',
+    regex:/^(?:Gal(?:atia)?)\s+(\d+)/i },
+  { nama:'Efesus',      ab:'Ef',   babMulai:1,  babAkhir:6,  mulai:'2029-09-18', selesai:'2029-09-23',
+    regex:/^(?:Ef(?:esus)?)\s+(\d+)/i },
+  { nama:'Filipi',      ab:'Flp',  babMulai:1,  babAkhir:4,  mulai:'2029-09-24', selesai:'2029-09-27',
+    regex:/^(?:Flp|Fil(?:ipi)?)\s+(\d+)/i },
+  { nama:'Kolose',      ab:'Kol',  babMulai:1,  babAkhir:4,  mulai:'2029-09-28', selesai:'2029-10-01',
+    regex:/^(?:Kol(?:ose)?)\s+(\d+)/i },
+  { nama:'1 Tesalonika',ab:'1Tes', babMulai:1,  babAkhir:5,  mulai:'2029-10-02', selesai:'2029-10-06',
+    regex:/^(?:1\s*Tes(?:alonika)?)\s+(\d+)/i },
+  { nama:'2 Tesalonika',ab:'2Tes', babMulai:1,  babAkhir:3,  mulai:'2029-10-07', selesai:'2029-10-09',
+    regex:/^(?:2\s*Tes(?:alonika)?)\s+(\d+)/i },
+  { nama:'1 Timotius',  ab:'1Tim', babMulai:1,  babAkhir:6,  mulai:'2029-10-10', selesai:'2029-10-15',
+    regex:/^(?:1\s*Tim(?:otius)?)\s+(\d+)/i },
+  { nama:'2 Timotius',  ab:'2Tim', babMulai:1,  babAkhir:4,  mulai:'2029-10-16', selesai:'2029-10-19',
+    regex:/^(?:2\s*Tim(?:otius)?)\s+(\d+)/i },
+  { nama:'Titus',       ab:'Tit',  babMulai:1,  babAkhir:3,  mulai:'2029-10-20', selesai:'2029-10-22',
+    regex:/^(?:Tit(?:us)?)\s+(\d+)/i },
+  { nama:'Filemon',     ab:'Flm',  babMulai:1,  babAkhir:1,  mulai:'2029-10-23', selesai:'2029-10-23',
+    regex:/^(?:Flm|Fil(?:emon)?)\s+(\d+)/i },
+  { nama:'Ibrani',      ab:'Ibr',  babMulai:1,  babAkhir:13, mulai:'2029-10-24', selesai:'2029-11-05',
+    regex:/^(?:Ibr(?:ani)?)\s+(\d+)/i },
+  { nama:'Yakobus',     ab:'Yak',  babMulai:1,  babAkhir:5,  mulai:'2029-11-06', selesai:'2029-11-10',
+    regex:/^(?:Yak(?:obus)?)\s+(\d+)/i },
+  { nama:'1 Petrus',    ab:'1Ptr', babMulai:1,  babAkhir:5,  mulai:'2029-11-11', selesai:'2029-11-15',
+    regex:/^(?:1\s*(?:Ptr|Pet(?:rus)?))\s+(\d+)/i },
+  { nama:'2 Petrus',    ab:'2Ptr', babMulai:1,  babAkhir:3,  mulai:'2029-11-16', selesai:'2029-11-18',
+    regex:/^(?:2\s*(?:Ptr|Pet(?:rus)?))\s+(\d+)/i },
+  { nama:'1 Yohanes',   ab:'1Yoh', babMulai:1,  babAkhir:5,  mulai:'2029-11-19', selesai:'2029-11-23',
+    regex:/^(?:1\s*Yoh(?:anes)?)\s+(\d+)/i },
+  { nama:'2 Yohanes',   ab:'2Yoh', babMulai:1,  babAkhir:1,  mulai:'2029-11-24', selesai:'2029-11-24',
+    regex:/^(?:2\s*Yoh(?:anes)?)\s+(\d+)/i },
+  { nama:'3 Yohanes',   ab:'3Yoh', babMulai:1,  babAkhir:1,  mulai:'2029-11-25', selesai:'2029-11-25',
+    regex:/^(?:3\s*Yoh(?:anes)?)\s+(\d+)/i },
+  { nama:'Yudas',       ab:'Yud',  babMulai:1,  babAkhir:1,  mulai:'2029-11-26', selesai:'2029-11-26',
+    regex:/^(?:Yud(?:as)?)\s+(\d+)/i },
+  { nama:'Wahyu',       ab:'Why',  babMulai:1,  babAkhir:22, mulai:'2029-11-27', selesai:'2029-12-18',
+    regex:/^(?:Why|Wah(?:yu)?)\s+(\d+)/i },
+];
+
+const BULAN_ID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+const HARI_ID  = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+
+// ════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════
+let _allJurnal = [];  // semua jurnal dari Firebase
+let _loaded = false;
+
+// ════════════════════════════════════════════
+// HELPERS TANGGAL (WIB)
+// ════════════════════════════════════════════
+function wibParts(d) {
+  const p = new Intl.DateTimeFormat('en-CA', {
+    timeZone:'Asia/Jakarta', year:'numeric', month:'2-digit', day:'2-digit'
+  }).formatToParts(d);
+  const g = t => p.find(x => x.type === t).value;
+  return { y:g('year'), m:g('month'), dd:g('day') };
+}
+function dateStr(d) { const {y,m,dd}=wibParts(d); return `${y}-${m}-${dd}`; }
+function todayWIB() {
+  const now = new Date();
+  const {y,m,dd} = wibParts(now);
+  return new Date(`${y}-${m}-${dd}T00:00:00+07:00`);
+}
+function fmtTgl(s) {
+  if (!s) return '—';
+  const d = new Date(s+'T00:00:00+07:00');
+  return `${d.getDate()} ${BULAN_ID[d.getMonth()]} ${d.getFullYear()}`;
+}
+function fmtTglPendek(s) {
+  if (!s) return '—';
+  const d = new Date(s+'T00:00:00+07:00');
+  return `${d.getDate()} ${BULAN_ID[d.getMonth()]}`;
+}
+function diffDays(d1, d2) {
+  return Math.round((d2-d1)/86400000);
+}
+
+// ════════════════════════════════════════════
+// JADWAL AKTIF
+// ════════════════════════════════════════════
+function getProgramAktif(tgl) {
+  const now = tgl ? new Date(tgl+'T12:00:00+07:00') : new Date();
+  let prog = JADWAL_PROGRAM.find(p => {
+    const s = new Date(p.mulai+'T00:00:00+07:00');
+    const e = new Date(p.selesai+'T23:59:59+07:00');
+    return now >= s && now <= e;
+  });
+  if (!prog) {
+    const first = new Date(JADWAL_PROGRAM[0].mulai+'T00:00:00+07:00');
+    prog = now < first ? JADWAL_PROGRAM[0] : JADWAL_PROGRAM[JADWAL_PROGRAM.length-1];
+  }
+  return prog;
+}
+
+function babJadwalPadaTanggal(tgl) {
+  const prog = getProgramAktif(tgl);
+  if (!prog) return null;
+  const tglDate  = new Date(tgl+'T00:00:00+07:00');
+  const mulaiDate = new Date(prog.mulai+'T00:00:00+07:00');
+  const dayOffset = diffDays(mulaiDate, tglDate); // 0-based
+  const totalBab  = prog.babAkhir - prog.babMulai + 1;
+  const totalDays = diffDays(mulaiDate, new Date(prog.selesai+'T23:59:59+07:00'));
+
+  // Distribusi merata: berapa bab per hari
+  // (1 bab per hari, jika totalDays > totalBab maka ada hari tanpa jadwal)
+  if (dayOffset < 0 || dayOffset > totalDays) return null;
+  const babNo = prog.babMulai + Math.min(dayOffset, totalBab-1);
+  return { ...prog, bab: babNo, label: `${prog.nama} ${babNo}`, ab: `${prog.ab} ${babNo}` };
+}
+
+function cekInputSesuai(bacaan, jadwal) {
+  if (!bacaan || !jadwal) return false;
+  const m = bacaan.match(jadwal.regex);
+  if (!m) return false;
+  return parseInt(m[1],10) === jadwal.bab;
+}
+
+// ════════════════════════════════════════════
+// FIREBASE — MUAT SEMUA
+// ════════════════════════════════════════════
+async function muat() {
+  tampilLoading(true);
+  try {
+    const snap = await db.collection('jurnal').orderBy('tanggal','desc').get();
+    _allJurnal = [];
+    snap.forEach(doc => {
+      const d = doc.data();
+      _allJurnal.push({
+        _id       : doc.id,   // ID dokumen Firestore (untuk edit/hapus)
+        id        : doc.id,
+        nama      : d.nama || '?',
+        idPeserta : (d.idPeserta||'').toString().padStart(3,'0'),
+        tanggal   : d.tanggal || '',
+        bacaan    : d.bacaan || '',
+        refleksi  : d.refleksi || '',
+        waktu     : d.waktu || null
+      });
+    });
+    _loaded = true;
+    toast('✅ ' + _allJurnal.length + ' jurnal berhasil dimuat dari Firebase');
+    updateBottomBar();
+    renderSemua();
+  } catch(e) {
+    console.error(e);
+    toast('❌ Gagal memuat data: ' + e.message);
+  } finally {
+    tampilLoading(false);
+  }
+}
+
+function updateBottomBar() {
+  const now = new Date();
+  const jam = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  const el = document.getElementById('bb-waktu');
+  const jml = document.getElementById('bb-jml');
+  if (el) el.textContent = 'Update: ' + jam;
+  if (jml) jml.textContent = _allJurnal.length + ' jurnal';
+}
+
+function muatUlang() {
+  muat();
+}
+
+function renderSemua() {
+  renderProgramAktif();
+  renderHarian();
+  renderTabelPeserta();
+  renderAuditDropdown();
+  renderRekap();
+  renderArsip();
+}
+
+// ════════════════════════════════════════════
+// 1. PROGRAM AKTIF
+// ════════════════════════════════════════════
+function renderProgramAktif() {
+  const prog   = getProgramAktif();
+  const todayS = dateStr(new Date());
+  const jadwal = babJadwalPadaTanggal(todayS);
+
+  const mulai  = new Date(prog.mulai+'T00:00:00+07:00');
+  const selesai = new Date(prog.selesai+'T23:59:59+07:00');
+  const today  = todayWIB();
+  const totalBab = prog.babAkhir - prog.babMulai + 1;
+  const dayNo  = diffDays(mulai, today) + 1;
+  const sisaHari = Math.max(0, diffDays(today, selesai));
+
+  document.getElementById('pc-kitab').textContent = 'Kitab ' + prog.nama;
+  document.getElementById('pc-period').textContent =
+    fmtTgl(prog.mulai) + ' – ' + fmtTgl(prog.selesai);
+  document.getElementById('pc-target').textContent  = totalBab + ' Bab (' + prog.ab + ' ' + prog.babMulai + '–' + prog.babAkhir + ')';
+  document.getElementById('pc-today').textContent   = jadwal ? jadwal.ab : '—';
+  document.getElementById('pc-dayno').textContent   = dayNo + ' / ' + (diffDays(mulai, selesai)+1);
+  document.getElementById('pc-sisa').textContent    = sisaHari + ' hari';
+
+  // Progress: hitung unik bab terbaca periode ini
+  const babSet = new Set();
+  _allJurnal.forEach(j => {
+    if (!j.tanggal) return;
+    const tglD = new Date(j.tanggal+'T00:00:00+07:00');
+    if (tglD < mulai || tglD > selesai) return;
+    const m = j.bacaan.match(prog.regex);
+    if (m) { const b = parseInt(m[1],10); if (b >= prog.babMulai && b <= prog.babAkhir) babSet.add(b); }
+  });
+  // Per-peserta progress: berapa yang sudah pernah baca bab ini
+  // (unik bab global)
+  const pct = Math.min(100, Math.round(babSet.size/totalBab*100));
+  document.getElementById('pc-prog-lbl').textContent = 'Bab terbaca: ' + babSet.size + '/' + totalBab;
+  document.getElementById('pc-prog-pct').textContent = pct + '%';
+  document.getElementById('pc-prog-fill').style.width = pct + '%';
+
+  // Stats summary
+  const today_str = todayS;
+  const inputToday = new Set(_allJurnal.filter(j => j.tanggal === today_str).map(j => j.idPeserta));
+  const pernahInput = new Set(_allJurnal.map(j => j.idPeserta));
+  document.getElementById('st-total').textContent = _allJurnal.length;
+  document.getElementById('st-tepat').textContent = inputToday.size;
+  document.getElementById('st-late').textContent  = pernahInput.size - inputToday.size;
+  document.getElementById('st-none').textContent  = DAFTAR_PESERTA.length - pernahInput.size;
+
+  // Jadwal list
+  const jadwalListEl = document.getElementById('jadwalList');
+  jadwalListEl.innerHTML = JADWAL_PROGRAM.map(p => {
+    const isAktif = p === prog;
+    const isPast  = new Date(p.selesai+'T23:59:59+07:00') < today;
+    const badge   = isAktif ? '<span class="badge badge-navy">▶ Aktif</span>'
+                  : isPast  ? '<span class="badge badge-green">✅ Selesai</span>'
+                  :           '<span class="badge" style="background:var(--parch-2);color:var(--ink-3)">Mendatang</span>';
+    const rowBg   = isAktif ? 'background:var(--parch-2);border-radius:8px;' : '';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:9px 10px;margin:0 -10px;border-bottom:1px solid var(--parch-3);font-size:0.8rem;color:var(--ink-3);${rowBg}">
+      <span style="font-family:'Playfair Display',serif;font-weight:700;min-width:80px;color:var(--ink-2)">${p.nama}</span>
+      <span style="flex:1;color:var(--ink-3);font-size:0.72rem">${fmtTgl(p.mulai)} – ${fmtTgl(p.selesai)}</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--ink-3)">${p.babAkhir-p.babMulai+1} bab</span>
+      ${badge}
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════
+// 2. MONITORING HARIAN
+// ════════════════════════════════════════════
+function renderHarian() {
+  const today = todayWIB();
+  const grid  = document.getElementById('harianGrid');
+  const days  = [];
+  for (let i = 0; i < 4; i++) {
+    const d = new Date(today.getTime() - i*86400000);
+    days.push(dateStr(d));
+  }
+
+  grid.innerHTML = days.map(tgl => {
+    const jadwal = babJadwalPadaTanggal(tgl);
+    const d = new Date(tgl+'T00:00:00+07:00');
+    const hariNama = HARI_ID[d.getDay()] + ', ' + d.getDate() + ' ' + BULAN_ID[d.getMonth()];
+    const isToday = tgl === days[0];
+
+    // Siapa yang sudah input hari ini
+    const jurnalHari = _allJurnal.filter(j => j.tanggal === tgl);
+    const inputSet = {};
+    jurnalHari.forEach(j => {
+      if (!inputSet[j.idPeserta]) inputSet[j.idPeserta] = [];
+      inputSet[j.idPeserta].push(j.bacaan);
+    });
+
+    let tepat=0, terlambat=0, belum=0;
+
+    const baris = DAFTAR_PESERTA.map(p => {
+      const inputs = inputSet[p.id] || [];
+      let status, dot, bacaanInfo = '';
+      if (inputs.length > 0) {
+        const sesuai = inputs.some(b => cekInputSesuai(b, jadwal));
+        if (sesuai || !isToday) {
+          status = 'tepat'; dot = 'dot-green';
+          bacaanInfo = inputs[0];
+          tepat++;
+        } else {
+          status = 'terlambat'; dot = 'dot-yellow';
+          bacaanInfo = inputs[0];
+          terlambat++;
+        }
+      } else {
+        status = 'belum'; dot = 'dot-red';
+        belum++;
+      }
+
+      return `<div class="day-peserta-row">
+        <span class="dpr-id">${p.id}</span>
+        <span class="dpr-nama" title="${bacaanInfo||'Belum input'}">${p.nama}</span>
+        <span class="dot ${dot}" title="${bacaanInfo||'Belum input'}"></span>
+      </div>`;
+    }).join('');
+
+    return `<div class="day-card">
+      <div class="day-header" style="${isToday?'background:var(--navy)':'background:#3a6080'}">
+        <div class="day-name">${isToday?'🔵 ':''} ${hariNama}</div>
+        <div class="day-jadwal">${jadwal ? jadwal.ab : 'Tidak dalam jadwal'}</div>
+      </div>
+      <div class="day-body">${baris}</div>
+      <div class="day-stats">
+        <div class="ds-item"><span class="dot dot-green"></span><span>${tepat} tepat</span></div>
+        <div class="ds-item"><span class="dot dot-yellow"></span><span>${terlambat} terlambat</span></div>
+        <div class="ds-item"><span class="dot dot-red"></span><span>${belum} belum</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════
+// 3. TABEL SEMUA PESERTA
+// ════════════════════════════════════════════
+function pesertaStats(id) {
+  const jurnal = _allJurnal.filter(j => j.idPeserta === id);
+  // Streak
+  const dates = [...new Set(jurnal.map(j => j.tanggal))].sort();
+  let streak = 0;
+  if (dates.length) {
+    let cur = todayWIB();
+    for (let i = dates.length-1; i >= 0; i--) {
+      const d = new Date(dates[i]+'T00:00:00+07:00');
+      if (Math.abs(cur-d) <= 86400000*1.5) { streak++; cur=d; } else break;
+    }
+  }
+  // Input terakhir
+  const last = jurnal[0]; // sudah sorted desc
+  const todayS = dateStr(new Date());
+  const inputToday = jurnal.some(j => j.tanggal === todayS);
+  const jadwal = babJadwalPadaTanggal(todayS);
+  const inputTepat = jurnal.some(j => j.tanggal === todayS && cekInputSesuai(j.bacaan, jadwal));
+
+  let statusCode;
+  if (inputTepat) statusCode = 'tepat';
+  else if (inputToday) statusCode = 'tepat';
+  else if (jurnal.length > 0) statusCode = 'late';
+  else statusCode = 'none';
+
+  return {
+    total: jurnal.length,
+    streak,
+    last: last ? last.tanggal : null,
+    lastBacaan: last ? last.bacaan : null,
+    statusCode
+  };
+}
+
+function renderTabelPeserta() {
+  if (!_loaded) { document.getElementById('tabelBody').innerHTML = '<tr><td colspan="7" class="empty">Klik Refresh untuk memuat data…</td></tr>'; return; }
+  const q   = (document.getElementById('searchPeserta').value || '').toLowerCase();
+  const fs  = document.getElementById('filterStatus').value;
+  const todayS = dateStr(new Date());
+  const jadwal = babJadwalPadaTanggal(todayS);
+
+  const rows = DAFTAR_PESERTA.map(p => {
+    const st = pesertaStats(p.id);
+    if (fs !== 'semua' && st.statusCode !== fs && !(fs==='late' && st.statusCode==='none')) {
+      if (fs === 'tepat' && st.statusCode !== 'tepat') return null;
+      if (fs === 'late' && st.statusCode !== 'late') return null;
+      if (fs === 'none' && st.statusCode !== 'none') return null;
+    }
+    if (q && !p.nama.toLowerCase().includes(q) && !p.id.includes(q)) return null;
+
+    const badge = st.statusCode === 'tepat'
+      ? '<span class="badge badge-green">✅ Input Hari Ini</span>'
+      : st.statusCode === 'late'
+      ? '<span class="badge badge-yellow">⚠️ Belum Hari Ini</span>'
+      : '<span class="badge badge-red">❌ Belum Pernah</span>';
+
+    return `<tr class="clickable" onclick="bukaAudit('${p.id}')">
+      <td class="id-cell">${p.id}</td>
+      <td class="nama-cell">${p.nama}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--navy)">${jadwal ? jadwal.ab : '—'}</td>
+      <td style="font-size:0.72rem;color:var(--ink-3)">${st.last ? fmtTgl(st.last) + '<br><span style="color:var(--ink-2)">' + (st.lastBacaan||'') + '</span>' : '—'}</td>
+      <td style="text-align:center;font-family:\'Playfair Display\',serif;font-weight:700;color:var(--navy)">${st.total}</td>
+      <td style="text-align:center">
+        ${st.streak > 0 ? `<span style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--green)">🔥${st.streak}</span>` : '<span style="color:var(--ink-3)">—</span>'}
+      </td>
+      <td>${badge}</td>
+    </tr>`;
+  }).filter(Boolean);
+
+  const tbody = document.getElementById('tabelBody');
+  tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="7" class="empty">Tidak ada data yang cocok</td></tr>';
+}
+
+// ════════════════════════════════════════════
+// 4. DETAIL AUDIT
+// ════════════════════════════════════════════
+function renderAuditDropdown() {
+  const sel = document.getElementById('auditSelect');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Pilih Peserta —</option>';
+  DAFTAR_PESERTA.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.id + ' — ' + p.nama;
+    sel.appendChild(opt);
+  });
+  if (cur) sel.value = cur;
+}
+
+function bukaAudit(id) {
+  gotoSection('audit');
+  document.getElementById('auditSelect').value = id;
+  renderAudit(id);
+}
+
+function renderAudit(id) {
+  if (!id) {
+    document.getElementById('detail-hint').style.display = 'block';
+    document.getElementById('detail-content').style.display = 'none';
+    return;
+  }
+  _auditIdAktif = id; // simpan untuk refresh setelah edit/hapus
+  const p = DAFTAR_PESERTA.find(x => x.id === id);
+  if (!p) return;
+
+  const jurnal = _allJurnal.filter(j => j.idPeserta === id).sort((a,b) => b.tanggal.localeCompare(a.tanggal));
+
+  // Streak
+  const dates = [...new Set(jurnal.map(j => j.tanggal))].sort();
+  let streak = 0;
+  if (dates.length) {
+    let cur = todayWIB();
+    for (let i = dates.length-1; i >= 0; i--) {
+      const d = new Date(dates[i]+'T00:00:00+07:00');
+      if (Math.abs(cur-d) <= 86400000*1.5) { streak++; cur=d; } else break;
+    }
+  }
+
+  // Keterlambatan: input yg tanggalnya < hari ini tapi ada inputannya
+  const todayS = dateStr(new Date());
+  let terlambat = 0;
+  jurnal.forEach(j => {
+    const jadwal = babJadwalPadaTanggal(j.tanggal);
+    if (jadwal && !cekInputSesuai(j.bacaan, jadwal)) terlambat++;
+  });
+
+  // Capaian program aktif
+  const prog = getProgramAktif();
+  const mulai = new Date(prog.mulai+'T00:00:00+07:00');
+  const selesai = new Date(prog.selesai+'T23:59:59+07:00');
+  const babSet = new Set();
+  jurnal.forEach(j => {
+    const tglD = new Date(j.tanggal+'T00:00:00+07:00');
+    if (tglD < mulai || tglD > selesai) return;
+    const m = j.bacaan.match(prog.regex);
+    if (m) { const b = parseInt(m[1],10); if (b >= prog.babMulai && b <= prog.babAkhir) babSet.add(b); }
+  });
+  const totalBab = prog.babAkhir - prog.babMulai + 1;
+  const capaian  = babSet.size;
+
+  document.getElementById('detail-hint').style.display = 'none';
+  document.getElementById('detail-content').style.display = 'block';
+
+  document.getElementById('da-avatar').textContent = p.nama[0];
+  document.getElementById('da-nama').textContent   = p.nama;
+  document.getElementById('da-id').textContent     = 'ID: ' + p.id;
+
+  document.getElementById('da-stats').innerHTML = `
+    <div class="ds-card"><div class="num">${jurnal.length}</div><div class="lbl">Total Jurnal</div></div>
+    <div class="ds-card green"><div class="num">🔥${streak}</div><div class="lbl">Streak Hari</div></div>
+    <div class="ds-card red"><div class="num">${terlambat}</div><div class="lbl">Tidak Sesuai Jadwal</div></div>
+    <div class="ds-card"><div class="num">${capaian}/${totalBab}</div><div class="lbl">Bab ${prog.nama} Aktif</div></div>
+  `;
+
+  document.getElementById('da-timeline').innerHTML = jurnal.length
+    ? jurnal.slice(0, 60).map(j => {
+        const jadwal = babJadwalPadaTanggal(j.tanggal);
+        const sesuai = cekInputSesuai(j.bacaan, jadwal);
+        const dot = sesuai ? 'dot-green' : j.bacaan ? 'dot-yellow' : 'dot-red';
+        return `<li class="tl-item">
+          <span class="tl-date">${fmtTglPendek(j.tanggal)}</span>
+          <span class="dot ${dot}" style="margin-top:3px"></span>
+          <div style="flex:1">
+            <div class="tl-bacaan">${j.bacaan || '—'}</div>
+            ${j.refleksi ? `<div class="tl-ref">${j.refleksi.substring(0,100)}${j.refleksi.length>100?'…':''}</div>` : ''}
+            <div class="tl-actions">
+              <button class="btn-edit" onclick="bukaEdit('${j._id}')">✏️ Edit</button>
+              <button class="btn-hapus" onclick="bukaHapus('${j._id}')">🗑️ Hapus</button>
+            </div>
+          </div>
+        </li>`;
+      }).join('')
+    : '<li class="empty">Belum ada jurnal tersimpan untuk peserta ini.</li>';
+}
+
+// ════════════════════════════════════════════
+// 5. REKAP KITAB
+// ════════════════════════════════════════════
+function renderRekap() {
+  const container = document.getElementById('rekapContainer');
+
+  // Group jurnal per program
+  container.innerHTML = JADWAL_PROGRAM.map(prog => {
+    const mulai  = new Date(prog.mulai+'T00:00:00+07:00');
+    const selesai = new Date(prog.selesai+'T23:59:59+07:00');
+    const today  = new Date();
+    const isAktif = today >= mulai && today <= selesai;
+    const isPast  = today > selesai;
+    if (!isPast && !isAktif) return '';  // skip future
+
+    const totalBab = prog.babAkhir - prog.babMulai + 1;
+
+    const rows = DAFTAR_PESERTA.map(p => {
+      const babSet = new Set();
+      _allJurnal.forEach(j => {
+        if (j.idPeserta !== p.id) return;
+        const tglD = new Date(j.tanggal+'T00:00:00+07:00');
+        if (tglD < mulai || tglD > selesai) return;
+        const m = j.bacaan.match(prog.regex);
+        if (m) { const b=parseInt(m[1],10); if (b>=prog.babMulai && b<=prog.babAkhir) babSet.add(b); }
+      });
+      const tercapai = babSet.size;
+      const pct = Math.min(100, Math.round(tercapai/totalBab*100));
+      const status = tercapai >= totalBab ? '<span class="badge badge-green">✅ Lunas</span>'
+                   : tercapai === 0       ? '<span class="badge badge-red">❌ Belum</span>'
+                   : `<span class="badge badge-yellow">Kurang ${totalBab-tercapai}</span>`;
+      return `<tr>
+        <td class="id-cell">${p.id}</td>
+        <td class="nama-cell">${p.nama}</td>
+        <td style="text-align:center">${totalBab}</td>
+        <td style="text-align:center;font-weight:700;color:var(--navy)">${tercapai}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;min-width:32px">${pct}%</span>
+            <div class="pct-bar" style="flex:1"><div class="pct-fill" style="width:${pct}%"></div></div>
+          </div>
+        </td>
+        <td>${status}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="card" style="margin-bottom:22px">
+      <div class="card-title">
+        Rekap ${prog.nama} (${prog.ab} ${prog.babMulai}–${prog.babAkhir})
+        ${isAktif ? '<span class="badge badge-navy" style="margin-left:8px">Aktif</span>' : '<span class="badge badge-green" style="margin-left:8px">Selesai</span>'}
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Nama</th><th>Target</th><th>Tercapai</th><th style="min-width:150px">%</th><th>Status</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+
+  if (!container.innerHTML.trim()) {
+    container.innerHTML = '<div class="empty">Belum ada program yang selesai atau sedang aktif.</div>';
+  }
+}
+
+// ════════════════════════════════════════════
+// 6. ARSIP
+// ════════════════════════════════════════════
+function renderArsip() {
+  const today = new Date();
+  const list  = document.getElementById('arsipList');
+  list.innerHTML = JADWAL_PROGRAM.map(prog => {
+    const mulai  = new Date(prog.mulai+'T00:00:00+07:00');
+    const selesai = new Date(prog.selesai+'T23:59:59+07:00');
+    const isAktif = today >= mulai && today <= selesai;
+    const isPast  = today > selesai;
+    const isFuture = today < mulai;
+
+    const totalBab = prog.babAkhir - prog.babMulai + 1;
+
+    // Hitung total jurnal untuk periode ini
+    const totalJurnal = _allJurnal.filter(j => {
+      const d = new Date(j.tanggal+'T00:00:00+07:00');
+      return d >= mulai && d <= selesai;
+    }).length;
+
+    const badge = isAktif ? '<span class="badge badge-navy">▶ Aktif</span>'
+                : isPast  ? '<span class="badge badge-green">✅ Selesai</span>'
+                : '<span class="badge" style="background:var(--parch-2);color:var(--ink-3)">Mendatang</span>';
+
+    const icon = isAktif ? '📖' : isPast ? '✅' : '📅';
+
+    return `<div class="arsip-item">
+      <div class="arsip-icon">${icon}</div>
+      <div class="arsip-info">
+        <div class="arsip-kitab">${prog.nama} ${badge}</div>
+        <div class="arsip-period">${fmtTgl(prog.mulai)} – ${fmtTgl(prog.selesai)}</div>
+        <div class="arsip-prog">${prog.ab} ${prog.babMulai}–${prog.babAkhir} · ${totalBab} bab · ${totalJurnal} jurnal tersimpan</div>
+      </div>
+      ${(isPast || isAktif) ? `<button class="refresh-btn" style="font-size:0.72rem;padding:7px 12px" onclick="gotoSection('rekap')">Lihat Rekap →</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════
+// 7. EXPORT
+// ════════════════════════════════════════════
+function exportExcel(type) {
+  if (!_loaded && type !== 'semua-jurnal') { toast('❌ Muat data dulu!'); return; }
+  let wb = XLSX.utils.book_new();
+
+  if (type === 'semua-jurnal') {
+    const rows = _allJurnal.map(j => ({
+      ID: j.idPeserta, Nama: j.nama, Tanggal: j.tanggal, Bacaan: j.bacaan, Refleksi: j.refleksi
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Semua Jurnal');
+    XLSX.writeFile(wb, 'jurnal_semua.xlsx');
+
+  } else if (type === 'semua') {
+    const todayS = dateStr(new Date());
+    const rows = DAFTAR_PESERTA.map(p => {
+      const st = pesertaStats(p.id);
+      return { ID: p.id, Nama: p.nama, 'Total Jurnal': st.total, Streak: st.streak, 'Input Terakhir': st.last || '—', Status: st.statusCode };
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Semua Peserta');
+    XLSX.writeFile(wb, 'monitoring_peserta.xlsx');
+
+  } else if (type === 'harian') {
+    const today = todayWIB();
+    for (let i = 0; i < 4; i++) {
+      const tgl = dateStr(new Date(today.getTime() - i*86400000));
+      const jadwal = babJadwalPadaTanggal(tgl);
+      const jurnalHari = _allJurnal.filter(j => j.tanggal === tgl);
+      const inputMap = {};
+      jurnalHari.forEach(j => { inputMap[j.idPeserta] = j.bacaan; });
+      const rows = DAFTAR_PESERTA.map(p => {
+        const b = inputMap[p.id] || '';
+        const sesuai = cekInputSesuai(b, jadwal);
+        return { ID:p.id, Nama:p.nama, Jadwal:jadwal?jadwal.ab:'—', Input:b||'—', Status: b ? (sesuai?'Tepat':'Terlambat') : 'Belum' };
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), fmtTglPendek(tgl));
+    }
+    XLSX.writeFile(wb, 'monitoring_harian.xlsx');
+
+  } else if (type === 'rekap') {
+    JADWAL_PROGRAM.forEach(prog => {
+      const mulai  = new Date(prog.mulai+'T00:00:00+07:00');
+      const selesai = new Date(prog.selesai+'T23:59:59+07:00');
+      const today  = new Date();
+      if (today < mulai) return;
+      const totalBab = prog.babAkhir - prog.babMulai + 1;
+      const rows = DAFTAR_PESERTA.map(p => {
+        const babSet = new Set();
+        _allJurnal.forEach(j => {
+          if (j.idPeserta !== p.id) return;
+          const tglD = new Date(j.tanggal+'T00:00:00+07:00');
+          if (tglD < mulai || tglD > selesai) return;
+          const m = j.bacaan.match(prog.regex);
+          if (m) { const b=parseInt(m[1],10); if (b>=prog.babMulai&&b<=prog.babAkhir) babSet.add(b); }
+        });
+        const tercapai = babSet.size;
+        const pct = Math.min(100, Math.round(tercapai/totalBab*100));
+        return { ID:p.id, Nama:p.nama, Target:totalBab, Tercapai:tercapai, '%':pct+'%', Status: tercapai>=totalBab?'Lunas':tercapai===0?'Belum':'Kurang '+(totalBab-tercapai) };
+      });
+      const sheetName = prog.ab.replace(/\s/g,'').substring(0,28);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), sheetName);
+    });
+    XLSX.writeFile(wb, 'rekap_kitab.xlsx');
+  }
+  toast('✅ File Excel berhasil diunduh!');
+}
+
+function cetakHalaman(type) {
+  if (!_loaded) { toast('❌ Muat data dulu!'); return; }
+  if (type === 'harian') gotoSection('harian');
+  if (type === 'rekap')  gotoSection('rekap');
+  setTimeout(() => window.print(), 300);
+}
+
+// ════════════════════════════════════════════
+// EDIT & HAPUS JURNAL
+// ════════════════════════════════════════════
+let _editDocId  = null; // ID dokumen Firestore yang sedang diedit
+let _hapusDocId = null; // ID dokumen Firestore yang akan dihapus
+let _auditIdAktif = null; // ID peserta yang sedang dibuka auditnya
+
+// Buka modal edit
+function bukaEdit(docId) {
+  const j = _allJurnal.find(x => x._id === docId);
+  if (!j) return;
+  _editDocId = docId;
+  document.getElementById('editInfo').textContent =
+    `${j.nama} · ${fmtTgl(j.tanggal)}`;
+  document.getElementById('editBacaan').value   = j.bacaan   || '';
+  document.getElementById('editRefleksi').value = j.refleksi || '';
+  document.getElementById('modalEdit').classList.add('show');
+}
+
+function tutupModalEdit() {
+  document.getElementById('modalEdit').classList.remove('show');
+  _editDocId = null;
+}
+
+// Simpan hasil edit ke Firestore
+async function simpanEdit() {
+  if (!_editDocId) return;
+  const bacaan   = document.getElementById('editBacaan').value.trim();
+  const refleksi = document.getElementById('editRefleksi').value.trim();
+  if (!bacaan) { toast('⚠️ Kolom Bacaan tidak boleh kosong!'); return; }
+
+  try {
+    tampilLoading(true);
+    await db.collection('jurnal').doc(_editDocId).update({ bacaan, refleksi });
+
+    // Update data lokal agar tampilan langsung berubah tanpa reload
+    const idx = _allJurnal.findIndex(x => x._id === _editDocId);
+    if (idx !== -1) { _allJurnal[idx].bacaan = bacaan; _allJurnal[idx].refleksi = refleksi; }
+
+    tutupModalEdit();
+    toast('✅ Jurnal berhasil diperbarui!');
+
+    // Render ulang audit peserta yang sedang dibuka
+    if (_auditIdAktif) renderAudit(_auditIdAktif);
+  } catch(e) {
+    toast('❌ Gagal menyimpan: ' + e.message);
+  } finally {
+    tampilLoading(false);
+  }
+}
+
+// Buka modal konfirmasi hapus
+function bukaHapus(docId) {
+  const j = _allJurnal.find(x => x._id === docId);
+  if (!j) return;
+  _hapusDocId = docId;
+  document.getElementById('hapusInfo').textContent =
+    `${j.nama} · ${fmtTgl(j.tanggal)} · ${j.bacaan}`;
+  document.getElementById('modalHapus').classList.add('show');
+}
+
+function tutupModalHapus() {
+  document.getElementById('modalHapus').classList.remove('show');
+  _hapusDocId = null;
+}
+
+// Hapus dokumen dari Firestore
+async function konfirmasiHapus() {
+  if (!_hapusDocId) return;
+  try {
+    tampilLoading(true);
+    await db.collection('jurnal').doc(_hapusDocId).delete();
+
+    // Hapus dari data lokal juga
+    _allJurnal = _allJurnal.filter(x => x._id !== _hapusDocId);
+
+    tutupModalHapus();
+    toast('🗑️ Jurnal berhasil dihapus!');
+
+    // Render ulang tampilan
+    if (_auditIdAktif) renderAudit(_auditIdAktif);
+    renderTabelPeserta();
+    renderHarian();
+    renderProgramAktif();
+  } catch(e) {
+    toast('❌ Gagal menghapus: ' + e.message);
+  } finally {
+    tampilLoading(false);
+  }
+}
+
+// Tutup modal jika klik backdrop
+document.addEventListener('click', function(e) {
+  if (e.target.id === 'modalEdit')  tutupModalEdit();
+  if (e.target.id === 'modalHapus') tutupModalHapus();
+});
+
+// ════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════
+function gotoSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('aktif'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('aktif'));
+  document.getElementById('sec-' + id).classList.add('aktif');
+  document.querySelector(`[data-target="${id}"]`).classList.add('aktif');
+  window.scrollTo(0, 0);
+}
+
+// ════════════════════════════════════════════
+// UI HELPERS
+// ════════════════════════════════════════════
+function tampilLoading(show) {
+  document.getElementById('loadingOverlay').classList.toggle('show', show);
+}
+let _toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+
+// ════════════════════════════════════════════
+// FIREBASE EMAIL AUTH — OPSI B
+// ════════════════════════════════════════════
+
+// Sembunyikan seluruh konten utama sampai auth dikonfirmasi
+document.querySelector('.sidebar') && (document.querySelector('.sidebar').style.visibility = 'hidden');
+document.querySelector('.main')    && (document.querySelector('.main').style.visibility    = 'hidden');
+
+auth.onAuthStateChanged(user => {
+  const loginScreen = document.getElementById('loginScreen');
+  const sidebar     = document.querySelector('.sidebar');
+  const main        = document.querySelector('.main');
+  const emailLabel  = document.getElementById('adminEmailLabel');
+
+  if (user) {
+    // ── Sudah login ──
+    loginScreen.classList.add('hidden');
+    if (sidebar) sidebar.style.visibility = '';
+    if (main)    main.style.visibility    = '';
+    if (emailLabel) emailLabel.textContent = '👤 ' + user.email;
+    // Muat data Firestore setelah auth dikonfirmasi
+    muat();
+  } else {
+    // ── Belum / sudah keluar ──
+    loginScreen.classList.remove('hidden');
+    if (sidebar) sidebar.style.visibility = 'hidden';
+    if (main)    main.style.visibility    = 'hidden';
+    if (emailLabel) emailLabel.textContent = '';
+  }
+});
+
+async function doLogin() {
+  const email  = document.getElementById('loginEmail').value.trim();
+  const pass   = document.getElementById('loginPassword').value;
+  const errEl  = document.getElementById('loginError');
+  const btn    = document.getElementById('loginBtn');
+
+  errEl.style.display = 'none';
+  if (!email || !pass) {
+    errEl.textContent = '⚠️ Email dan password harus diisi.';
+    errEl.style.display = 'block'; return;
+  }
+
+  btn.textContent = 'Memverifikasi…';
+  btn.disabled = true;
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+    // onAuthStateChanged akan otomatis menyembunyikan loginScreen
+  } catch(e) {
+    const map = {
+      'auth/user-not-found'     : 'Email tidak terdaftar sebagai admin.',
+      'auth/wrong-password'     : 'Password salah. Coba lagi.',
+      'auth/invalid-email'      : 'Format email tidak valid.',
+      'auth/too-many-requests'  : 'Terlalu banyak percobaan. Tunggu beberapa menit.',
+      'auth/network-request-failed': 'Gagal terhubung. Periksa koneksi internet.',
+    };
+    errEl.textContent = map[e.code] || ('Login gagal: ' + e.message);
+    errEl.style.display = 'block';
+    btn.textContent = 'Masuk';
+    btn.disabled = false;
+  }
+}
+
+function doLogout() {
+  if (!confirm('Yakin ingin keluar dari Admin Panel?')) return;
+  auth.signOut().then(() => toast('👋 Anda telah keluar.'));
+}
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  // Enter key pada form login
+  ['loginEmail','loginPassword'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  });
+  // Render skeleton data dulu (dari JADWAL_PROGRAM tanpa Firebase)
+  renderProgramAktif();
+  renderHarian();
+  renderAuditDropdown();
+  renderArsip();
+  // Data Firebase dimuat setelah onAuthStateChanged konfirmasi user login
+  // muat() dipanggil otomatis oleh onAuthStateChanged saat user terdeteksi
+});
+</script>
+
+<style>
+@media print {
+  .sidebar, .refresh-btn, .filter-bar, .export-grid, .page-header button { display: none !important; }
+  .main { margin-left: 0 !important; }
+  .section { display: block !important; }
+  .section:not(.aktif) { display: none !important; }
+}
+</style>
+
+</body>
+</html>

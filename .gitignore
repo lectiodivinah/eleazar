@@ -1,0 +1,11 @@
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Node (jika pakai firebase-tools via npm)
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db

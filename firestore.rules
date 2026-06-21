@@ -1,0 +1,48 @@
+rules_version = '2';
+
+// ================================================================
+// Satu Bab Setiap Hari — Firestore Security Rules
+// Proyek  : eleazar (lectio-divina)
+// Versi   : Opsi B — Firebase Email Auth
+// Update  : 2026
+//
+// index.html  → peserta simpan jurnal tanpa login (create only)
+// admin.html  → admin login Firebase Email Auth (read/update/delete)
+// ================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ════════════════════════════════════════════════════════════
+    // KOLEKSI: jurnal
+    // ════════════════════════════════════════════════════════════
+    match /jurnal/{docId} {
+
+      // ── CREATE: peserta boleh simpan jurnal baru tanpa login ──
+      // Validasi: semua field wajib ada, tidak boleh kosong
+      allow create: if
+        request.resource.data.keys().hasAll([
+          'idPeserta', 'nama', 'tanggal', 'bacaan', 'refleksi'
+        ])
+        && request.resource.data.idPeserta is string
+        && request.resource.data.idPeserta.size() > 0
+        && request.resource.data.nama is string
+        && request.resource.data.nama.size() > 0
+        && request.resource.data.tanggal is string
+        && request.resource.data.tanggal.size() > 0
+        && request.resource.data.bacaan is string
+        && request.resource.data.bacaan.size() > 0
+        && request.resource.data.refleksi is string;
+
+      // ── READ / UPDATE / DELETE: hanya admin yang sudah login ──
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Semua koleksi lain: ditolak sepenuhnya
+    // ════════════════════════════════════════════════════════════
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
