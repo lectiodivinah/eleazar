@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Scanner WA — KMKS Admin</title>
+  <title>Scanner WA — Admin</title>
 
   <!-- Tesseract.js -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -212,17 +212,19 @@
       vertical-align: middle;
     }
     tr:last-child td { border-bottom: none; }
-    tr.row-ok     { background: #f0fff4; }
-    tr.row-review { background: #fffbf0; }
-    tr.row-skip   { background: #fff5f5; opacity: 0.7; }
+    tr.row-ok       { background: #f0fff4; }
+    tr.row-review   { background: #fffbf0; }
+    tr.row-skip     { background: #fff5f5; opacity: 0.7; }
+    tr.row-duplikat { background: #fffbeb; border-left: 3px solid #f0ad4e; }
 
     .badge {
       display: inline-block; padding: 2px 8px;
       border-radius: 99px; font-size: 0.72rem; font-weight: 700;
     }
-    .badge-ok     { background: #d4edda; color: #155724; }
-    .badge-review { background: #fff3cd; color: #856404; }
-    .badge-skip   { background: #f8d7da; color: #721c24; }
+    .badge-ok      { background: #d4edda; color: #155724; }
+    .badge-review  { background: #fff3cd; color: #856404; }
+    .badge-skip    { background: #f8d7da; color: #721c24; }
+    .badge-duplikat{ background: #fff3cd; color: #856404; border: 1.5px solid #f0ad4e; }
 
     /* edit inline */
     .edit-bacaan {
@@ -293,7 +295,7 @@
   <div class="icon">📷</div>
   <div>
     <h1>Scanner WA</h1>
-    <p>KMKS Santo Hieronimus — Admin</p>
+    <p>New Eleazar Project — Admin</p>
   </div>
   <div id="tglAktif">
     <strong id="kitabAktifLabel">—</strong>
@@ -613,109 +615,268 @@ function toggleLog() {
 }
 
 // ════════════════════════════════════════════
-// PARSER UTAMA
+// PARSER UTAMA v2 — robust multi-anomali
 // ════════════════════════════════════════════
+
+// ── Regex kitab: versi toleran untuk semua anomali penulisan ──
+// Dibangun dinamis dari JADWAL_PROGRAM
+// Menangani: "Kel 3", "Kel:3", "Kel. 3", "Kel.3", "KEL3", "kel 3", "Keluaran3"
+function buildKitabRegex(jadwal) {
+  // Ambil singkatan dan nama lengkap, buat regex sangat toleran
+  // Contoh Kel → /(?:Keluaran|KEL|Kel|kel)\s*[.:),-]?\s*(\d+)/i
+  return jadwal.map(p => {
+    const ab  = p.ab.replace(/\s+/g, '\\s*');  // "1Sam" → "1\\s*Sam"
+    const nm  = p.nama.replace(/\s+/g, '\\s*'); // "1 Samuel" → "1\\s*Samuel"
+    // Escape karakter khusus di nama kitab (misal "Hakim-hakim")
+    const nmEsc = nm.replace(/[-]/g, '[-\\s]*');
+    const abEsc = ab.replace(/[-]/g, '[-\\s]*');
+    // Pattern: (singkatan|nama_lengkap) lalu separator opsional lalu angka
+    const pat = `(?:${nmEsc}|${abEsc})\\s*[.:),-]?\\s*(\\d+)`;
+    return { ...p, regexToleran: new RegExp(pat, 'i') };
+  });
+}
+
 /**
- * Normalisasi nama kitab dari OCR yang beragam
- * Contoh: "Kel.", "Kel:", "Kel. :", "kel", "KEL", "Keluaran" → semua jadi terdeteksi
- * Regex pada JADWAL_PROGRAM sudah handle Kel(?:uaran)?\s*[.:)]*\s*(\d+)
+ * Bersihkan noise dari teks OCR sebelum diproses
+ * Menangani: pesan sistem WA, header pengirim WA, timestamp, teks diedit
  */
-function normalisasiTeks(teks) {
+function bersihkanNoise(teks) {
   return teks
-    // Hapus pesan sistem WA
+    // ── Pesan sistem WA ──
     .replace(/Anda menghapus pesan ini/gi, '')
     .replace(/Pesan ini dihapus/gi, '')
     .replace(/This message was deleted/gi, '')
-    .replace(/Diedit\s+\d+\.\d+/gi, '')
-    // Normalisasi emoji teks (OCR kadang salah baca)
-    .replace(/\(buku|📖|🔖|\[buku\]/gi, '📖')
-    .replace(/\(api|🔥|\[api\]/gi, '🔥')
-    .replace(/\(hati|❤|♥|<3|\[hati\]/gi, '❤️')
-    // Normalisasi separator kitab: "Kel. :" → "Kel ", "Kel:" → "Kel ", "Kel." → "Kel "
-    .replace(/([A-Za-z])\s*[.:]+\s*(?=\d)/g, '$1 ')
-    // Normalisasi ayat: strip leading zeros "02" → "2"
+    .replace(/You deleted this message/gi, '')
+    // ── Teks "Diedit HH.MM" yang muncul setelah edit pesan ──
+    .replace(/Diedit\s+\d{1,2}[.:]\d{2}/gi, '')
+    // ── Header pengirim WA: "~ Nama Lengkap +62 xxx-xxxx-xxxx" ──
+    // Contoh: "~ Rini Jayanti +62 813-2766-991"
+    // Contoh: "~ A 60 ES +62 812-3612-2332"
+    .replace(/^~\s*.+?\+62[\d\s\-]+$/gm, '')
+    // ── Timestamp berdiri sendiri: "07.41", "06.49", "13.24" ──
+    .replace(/^\d{2}[.:]\d{2}$/gm, '')
+    // ── Timestamp dengan label: "Diedit 08.39" ──
+    .replace(/Diedit\s+\d{2}[.:]\d{2}/gi, '')
+    // ── Tanda baca WA lainnya ──
+    .replace(/---HALAMAN BARU---/g, '')
+    // ── Baris kosong berlebih → satu baris kosong ──
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
+ * Normalisasi representasi simbol dari OCR yang kadang salah baca
+ * 📖 bisa terbaca: [buku], (buku), huruf O, dll
+ * ❤️ bisa terbaca: <3, [hati], (hati), o, 0, huruf O setelah baris kosong
+ */
+function normalisasiSimbol(teks) {
+  return teks
+    // Normalisasi 📖
+    .replace(/\[buku\]|\(buku\)|🔖/gi, '📖')
+    // Normalisasi 🔥
+    .replace(/\[api\]|\(api\)/gi, '🔥')
+    // Normalisasi ❤️: bentuk teks
+    .replace(/\[hati\]|\(hati\)|<3/gi, '❤️')
+    // ❤ (unicode tanpa variation selector) → ❤️
+    .replace(/❤(?!️)/g, '❤️')
+    // ♥ → ❤️
+    .replace(/♥/g, '❤️');
+}
+
+/**
+ * Normalisasi penulisan kitab yang beragam agar regex lebih mudah cocok:
+ * - "Kel. :" → "Kel "     separator titik-titik dua
+ * - "Kel:"   → "Kel "     titik dua langsung
+ * - "Kel."   → "Kel "     titik langsung sebelum angka
+ * - "Kel3"   → "Kel 3"    dempet angka
+ * - "KEL 3"  → sudah ditangani oleh flag /i di regex
+ */
+function normalisasiKitab(teks) {
+  return teks
+    // Separator majemuk: "Kel. :" atau "Kel :" → "Kel "
+    .replace(/([A-Za-z])\s*\.\s*:\s*/g, '$1 ')
+    // Titik dua langsung: "Kel:" → "Kel "
+    .replace(/([A-Za-z])\s*:\s*(?=\d)/g, '$1 ')
+    // Titik langsung sebelum angka: "Kel.3" → "Kel 3"
+    .replace(/([A-Za-z])\.\s*(?=\d)/g, '$1 ')
+    // Dempet tanpa spasi: "Kel3" → "Kel 3" (hanya jika bukan angka sebelumnya)
+    .replace(/([A-Za-z])(\d)/g, '$1 $2')
+    // Strip leading zeros pada angka: "03" → "3"
     .replace(/\b0+(\d+)\b/g, '$1');
 }
 
 /**
- * Parse ayat dari string beragam format:
- * "10" → "10"
- * "10,12" → "10,12"
- * "10-12" → "10-12"
+ * Normalisasi penulisan ayat yang beragam:
+ * "20, 21, 23"  → "20,21,23"
+ * "20,21,23"    → "20,21,23"   (sudah bersih)
+ * "21, 22-23"   → "21,22-23"
+ * "21 - 23"     → "21-23"
+ * "21-23"       → "21-23"      (sudah bersih)
+ * "14,15."      → "14,15"      (hapus trailing titik)
  * "8-10, 19-22" → "8-10,19-22"
- * "14,15." → "14,15"
- * "7-8\n\n" → "7-8"
  */
-function parseAyat(str) {
+function normalisasiAyat(str) {
   if (!str) return '';
   return str
-    .replace(/\s+/g, '')       // hapus semua spasi
-    .replace(/[.]+$/g, '')     // hapus titik di akhir
-    .replace(/[^\d,\-]/g, '')  // hanya angka, koma, strip
-    .replace(/,+/g, ',')       // koma ganda jadi satu
-    .replace(/^,|,$/g, '');    // hapus koma di awal/akhir
+    .trim()
+    .replace(/\s*-\s*/g, '-')    // "21 - 23" → "21-23"
+    .replace(/\s*,\s*/g, ',')    // "20, 21" → "20,21"
+    .replace(/[.;]+$/g, '')      // hapus trailing titik/titik koma
+    .replace(/[^\d,\-]/g, '')    // hanya sisakan angka, koma, strip
+    .replace(/,+/g, ',')         // koma ganda → satu
+    .replace(/^[,\-]|[,\-]$/g,''); // hapus koma/strip di ujung
 }
 
 /**
- * Cari semua entri bacaan dalam satu blok pesan
- * Mengembalikan array: [{ tipe:'📖'|'🔥', kitab, bab, ayat }]
+ * Ekstrak ID peserta dari teks
+ * Anomali yang ditangani:
+ * - "(037)" → "037"   standar 3 digit dalam kurung
+ * - "(37)"  → "037"   2 digit dalam kurung → pad jadi 3
+ * - "037"   → "037"   3 digit tanpa kurung
+ * - "37"    (2 digit tanpa kurung) → diabaikan, ambigu dengan nomor urut
  */
-function ekstrakBacaan(blokTeks, isoTgl) {
-  const { utama, transisi } = kitabAktifUntuk(isoTgl);
-  const kitabValid = [utama, transisi].filter(Boolean);
-  if (!kitabValid.length) return [];
+function ekstrakId(teks) {
+  // Prioritas 1: dalam kurung, 2-3 digit
+  const m1 = teks.match(/\((\d{2,3})\)/);
+  if (m1) return m1[1].padStart(3, '0');
+  // Prioritas 2: tanpa kurung, tepat 3 digit, bukan bagian dari angka lebih panjang
+  const m2 = teks.match(/(?<!\d)(\d{3})(?!\d)/);
+  if (m2) return m2[1];
+  return '';
+}
 
+/**
+ * Ekstrak nama peserta dari baris nama
+ * Anomali yang ditangani:
+ * - "08. Agus (037)"     → "Agus"
+ * - "5.Yuni (041)"       → "Yuni"
+ * - "Eka (021)"          → "Eka"       (tanpa nomor urut)
+ * - "Nanang (013)"       → "Nanang"    (tanpa nomor urut)
+ * - "**Ari L (005)**"    → "Ari L"     (bold markdown WA)
+ * - "Agus 037"           → "Agus"      (ID tanpa kurung)
+ * - "Tri (003)"          → "Tri"       (nama pendek)
+ */
+function ekstrakNama(teks) {
+  return teks
+    .replace(/\*+/g, '')             // hapus bold markdown WA (**nama**)
+    .replace(/^\d+\s*[.\s]\s*/, '')  // hapus nomor urut di awal: "08. " atau "5."
+    .replace(/\(\d{2,3}\)/g, '')     // hapus (ID) dalam kurung
+    .replace(/(?<!\d)\d{3}(?!\d)/g, '') // hapus ID 3 digit tanpa kurung
+    .replace(/[~+\-_]/g, ' ')        // ganti karakter noise jadi spasi
+    .replace(/\s+/g, ' ')            // spasi berlebih → satu spasi
+    .trim();
+}
+
+/**
+ * Deteksi apakah satu baris adalah baris nama peserta
+ *
+ * Baris nama PASTI mengandung salah satu:
+ * (a) ID dalam kurung: (037), (21), (005)
+ * (b) Nomor urut di awal + huruf kapital: "08. Agus", "5.Yuni"
+ * (c) ID 3 digit tanpa kurung + nama: "Agus 037"
+ *
+ * Baris nama TIDAK mengandung:
+ * - Nama kitab aktif (Kel, Kej, Im, dst)
+ * - Simbol bacaan (📖, ❤️)
+ * - Nomor telepon (+62)
+ * - Hanya angka saja
+ * - Timestamp (HH.MM)
+ * - Header WA (dimulai ~)
+ */
+function adalahBarisPeserta(baris, kitabValid) {
+  const b = baris.trim();
+  if (!b || b.length > 80) return false;
+
+  // Buang jelas bukan nama
+  if (b.startsWith('~')) return false;                    // header WA
+  if (/^\+62/.test(b)) return false;                     // nomor telepon
+  if (/^\d{2}[.:]\d{2}$/.test(b)) return false;         // timestamp
+  if (/^[\d\s,.\-]+$/.test(b)) return false;             // hanya angka
+  if (b.includes('📖') || b.includes('❤️') || b.includes('🔥')) return false; // baris bacaan
+
+  // Buang baris yang mengandung nama kitab aktif
+  const namaKitab = kitabValid.flatMap(k => [k.ab, k.nama.split(' ').pop()]);
+  const kitabPat  = new RegExp(`\\b(${namaKitab.join('|')})\\b`, 'i');
+  if (kitabPat.test(b)) return false;
+
+  // POSITIF: mengandung ID dalam kurung
+  if (/\(\d{2,3}\)/.test(b)) return true;
+  // POSITIF: nomor urut di awal diikuti nama dengan huruf kapital
+  if (/^\d+\s*[.]\s*[A-Z]/.test(b)) return true;
+  // POSITIF: nama kapital + 3 digit tanpa kurung (misal "Agus 037")
+  if (/[A-Z][a-z]+\s+\d{3}(?!\d)/.test(b)) return true;
+
+  return false;
+}
+
+/**
+ * Ekstrak semua pasangan (kitab+bab, ayat) dari satu blok pesan peserta
+ * Menangani multi-bacaan: satu orang kirim Kel 2 + Kel 3 sekaligus
+ *
+ * Strategi: scan baris per baris, cari pola kitab lalu cari ayat di baris berikutnya
+ * (atau di baris yang sama jika inline, misal "📖 Kel 3 ❤️ 10,12")
+ */
+function ekstrakBacaanBlok(blokBaris, kitabValid, jadwalToleran) {
   const entries = [];
-  const baris = blokTeks.split('\n');
+  let tipeAktif  = '📖';
+  let kitabPending = null;
+  let babPending   = null;
 
-  let tipeAktif = '📖'; // default
-  let kitabAktif = null;
-  let babAktif = null;
-
-  for (let i = 0; i < baris.length; i++) {
-    const b = baris[i].trim();
+  for (let i = 0; i < blokBaris.length; i++) {
+    const b = blokBaris[i].trim();
     if (!b) continue;
 
-    // Deteksi tipe: 📖 atau 🔥
-    if (b.includes('📖') || b.match(/\bbuku\b/i)) tipeAktif = '📖';
-    if (b.includes('🔥') || b.match(/\bapi\b/i))  tipeAktif = '🔥';
+    // Tipe bacaan
+    if (b.includes('📖')) tipeAktif = '📖';
+    if (b.includes('🔥')) tipeAktif = '🔥';
 
-    // Coba cocokkan kitab dari baris ini
-    for (const kitab of kitabValid) {
-      const m = b.match(kitab.regex);
+    // ── Cari kitab di baris ini ──
+    for (const jt of jadwalToleran) {
+      // Cek apakah kitab ini valid untuk tanggal (ada di kitabValid)
+      if (!kitabValid.find(kv => kv.ab === jt.ab)) continue;
+      const m = b.match(jt.regexToleran);
       if (m) {
-        kitabAktif = kitab;
-        babAktif   = parseInt(m[1]);
-        // Validasi range bab
-        if (babAktif < kitab.babMulai || babAktif > kitab.babAkhir) {
-          kitabAktif = null; babAktif = null;
+        const bab = parseInt(m[1]);
+        if (bab >= jt.babMulai && bab <= jt.babAkhir) {
+          // Kalau ada kitab pending yang belum dapat ayat → simpan tanpa ayat
+          if (kitabPending && !entries.find(e => e.kitab.ab === kitabPending.ab && e.bab === babPending)) {
+            entries.push({ tipe: tipeAktif, kitab: kitabPending, bab: babPending, ayat: '' });
+          }
+          kitabPending = jt;
+          babPending   = bab;
+
+          // Cek apakah ayat ada di baris yang sama (inline): "📖 Kel 3 ❤️ 10,12"
+          const sisaBaris = b.slice(b.search(jt.regexToleran) + m[0].length);
+          if (sisaBaris.includes('❤️')) {
+            const ayatRaw = sisaBaris.replace(/❤️/g, '').trim();
+            const ayat = normalisasiAyat(ayatRaw);
+            if (ayat && /\d/.test(ayat)) {
+              entries.push({ tipe: tipeAktif, kitab: jt, bab, ayat });
+              kitabPending = null; babPending = null;
+            }
+          }
         }
         break;
       }
     }
 
-    // Deteksi ayat setelah ❤️
-    if ((b.includes('❤') || b.includes('♥') || b.match(/^[\d,\-\s]+$/)) && kitabAktif) {
-      // Ambil bagian angka setelah simbol hati
-      const ayatRaw = b.replace(/❤️?|♥/g, '').trim();
-      const ayat = parseAyat(ayatRaw);
+    // ── Cari ayat di baris ini (setelah ❤️ atau baris angka murni) ──
+    const adaHati   = b.includes('❤️');
+    const angkaMurni = /^[\d,\-\s.]+$/.test(b) && /\d/.test(b);
+
+    if ((adaHati || angkaMurni) && kitabPending) {
+      const ayatRaw = b.replace(/❤️/g, '').trim();
+      const ayat    = normalisasiAyat(ayatRaw);
       if (ayat && /\d/.test(ayat)) {
-        entries.push({
-          tipe : tipeAktif,
-          kitab: kitabAktif,
-          bab  : babAktif,
-          ayat : ayat
-        });
-        // Reset untuk entri berikutnya
-        kitabAktif = null;
-        babAktif   = null;
+        entries.push({ tipe: tipeAktif, kitab: kitabPending, bab: babPending, ayat });
+        kitabPending = null; babPending = null;
       }
     }
   }
 
-  // Fallback: kalau kitab terdeteksi tapi ayat tidak ada di baris terpisah
-  if (kitabAktif && babAktif && !entries.find(e => e.bab === babAktif && e.kitab === kitabAktif)) {
-    entries.push({ tipe: tipeAktif, kitab: kitabAktif, bab: babAktif, ayat: '' });
+  // Kitab terakhir yang belum dapat ayat
+  if (kitabPending) {
+    entries.push({ tipe: tipeAktif, kitab: kitabPending, bab: babPending, ayat: '' });
   }
 
   return entries;
@@ -723,118 +884,122 @@ function ekstrakBacaan(blokTeks, isoTgl) {
 
 /**
  * Format output baku: "Keluaran 3 : 10,12"
- * Jika 2 entri: "Keluaran 2 : 24,25 | Keluaran 1 : 17,21,22"
+ * Multi-bacaan:       "Keluaran 2 : 7-8 | Keluaran 3 : 20"
+ */
+/**
+ * Format output baku:
+ *   📖 → "Keluaran 3 : 10,12"       (tepat waktu, tanpa prefix)
+ *   🔥 → "🔥 Keluaran 2 : 7-8"      (bacaan telat, prefix 🔥)
+ * Multi: "Keluaran 3 : 20 | 🔥 Keluaran 2 : 7-8"
  */
 function formatBacaan(entries) {
   return entries.map(e => {
+    const prefix     = e.tipe === '🔥' ? '🔥 ' : '';
     const ayatBagian = e.ayat ? ` : ${e.ayat}` : '';
-    return `${e.kitab.nama} ${e.bab}${ayatBagian}`;
+    return `${prefix}${e.kitab.nama} ${e.bab}${ayatBagian}`;
   }).join(' | ');
 }
 
 /**
- * Ekstrak ID peserta dari teks: "(037)", "007", "(25)", "(005)"
- */
-function ekstrakId(teks) {
-  // Cari dalam kurung dulu
-  const m1 = teks.match(/\((\d{2,3})\)/);
-  if (m1) return m1[1].padStart(3, '0');
-  // Tanpa kurung: 3 digit berurutan
-  const m2 = teks.match(/\b(\d{3})\b/);
-  if (m2) return m2[1];
-  return '';
-}
-
-/**
- * Ekstrak nama peserta dari baris pertama blok
- * Contoh: "08. Agus (037)" → "Agus"
- * "Eka (021)" → "Eka"
- * "Christina 007" → "Christina"
- */
-function ekstrakNama(teks) {
-  return teks
-    .replace(/^\d+[\.\s]+/, '')   // hapus nomor urut di awal
-    .replace(/\(\d+\)/g, '')       // hapus (ID)
-    .replace(/\b\d{3}\b/g, '')     // hapus 3 digit tanpa kurung
-    .replace(/[~+\d\-]/g, '')      // hapus karakter tidak perlu
-    .trim()
-    .replace(/\s+/g, ' ');
-}
-
-/**
- * Parser utama: ambil teks OCR → array hasil
+ * PARSER UTAMA v2
+ * Input : teks OCR mentah dari Tesseract, tanggal ISO
+ * Output: array hasil [{ nama, id, bacaan, status, alasan }]
+ *
+ * Alur:
+ * 1. Bersihkan noise (pesan sistem WA, header pengirim, timestamp)
+ * 2. Normalisasi simbol emoji
+ * 3. Normalisasi penulisan kitab
+ * 4. Scan baris per baris → deteksi baris nama peserta
+ * 5. Kumpulkan baris sampai nama peserta berikutnya (= satu blok)
+ * 6. Dalam setiap blok, ekstrak bacaan (kitab+bab+ayat), termasuk multi-bacaan
+ * 7. Tentukan status: ok / review / skip
  */
 function parseOcr(teksAsli, isoTgl) {
-  const teks = normalisasiTeks(teksAsli);
   const { utama, transisi } = kitabAktifUntuk(isoTgl);
 
   if (!utama) {
     return [{ nama: '—', id: '', bacaan: '', status: 'skip', alasan: 'Tidak ada jadwal aktif untuk tanggal ini' }];
   }
 
-  // Pisah per blok pesan — deteksi pola nama WA (baris yang mengandung nama + no HP atau ID)
-  // Strategi: split di setiap baris yang mengandung pola "Nama (ID)" atau nomor urut "08. Nama"
-  const blokRegex = /(?=(?:\d+[\.\s]+)?[A-Z][a-z]+(?:\s[A-Z][a-z]+)*\s*(?:\(\d{2,3}\)|\d{3})?)/;
-  const baris = teks.split('\n');
+  const kitabValid    = [utama, transisi].filter(Boolean);
+  const jadwalToleran = buildKitabRegex(JADWAL_PROGRAM);
 
-  const hasil = [];
-  let blokSaatIni = [];
-  let namaBlok = '';
-  let idBlok = '';
+  // Preprocessing
+  let teks = bersihkanNoise(teksAsli);
+  teks     = normalisasiSimbol(teks);
+  teks     = normalisasiKitab(teks);
+
+  const semuaBaris = teks.split('\n');
+  const hasil      = [];
+
+  let blokBaris = [];
+  let namaBlok  = '';
+  let idBlok    = '';
 
   const flushBlok = () => {
-    if (!blokSaatIni.length || !namaBlok) return;
-    const blokTeks = blokSaatIni.join('\n');
-    const entries  = ekstrakBacaan(blokTeks, isoTgl);
-    const bacaan   = formatBacaan(entries);
+    if (!namaBlok || !blokBaris.length) return;
 
-    let status = 'review';
-    let alasan = '';
-    if (entries.length > 0 && entries[0].ayat) {
-      status = 'ok';
-    } else if (entries.length > 0) {
-      status = 'review'; alasan = 'Ayat tidak terdeteksi';
+    const entries = ekstrakBacaanBlok(blokBaris, kitabValid, jadwalToleran);
+
+    if (entries.length === 0) {
+      // Tidak ada bacaan terdeteksi → 1 baris skip
+      if (namaBlok.length >= 2) {
+        hasil.push({
+          nama: namaBlok, id: idBlok, bacaan: '', status: 'skip',
+          alasan: 'Kitab aktif tidak ditemukan dalam pesan'
+        });
+      }
     } else {
-      status = 'skip'; alasan = 'Kitab aktif tidak ditemukan';
+      // Setiap entry jadi BARIS TERPISAH agar mudah diedit
+      // Nama ditampilkan di baris pertama, baris berikutnya pakai label "(lanjutan)"
+      entries.forEach((e, idx) => {
+        const bacaan   = formatBacaan([e]);
+        const adaAyat  = !!e.ayat;
+        const isTelat  = e.tipe === '🔥';
+        let status, alasan;
+
+        if (adaAyat) {
+          status = 'ok';
+          alasan = isTelat ? '🔥 Bacaan telat' : '';
+        } else {
+          status = 'review';
+          alasan = 'Ayat tidak terdeteksi' + (isTelat ? ' · 🔥 bacaan telat' : '');
+        }
+
+        // Nama: baris pertama tampil nama asli, baris berikutnya beri tanda lanjutan
+        const namaRow = idx === 0
+          ? namaBlok
+          : `${namaBlok} ↩`;
+
+        if (namaBlok.length >= 2) {
+          hasil.push({ nama: namaRow, id: idBlok, bacaan, status, alasan });
+        }
+      });
     }
 
-    if (namaBlok.length > 1) {
-      hasil.push({ nama: namaBlok, id: idBlok, bacaan, status, alasan });
-    }
-    blokSaatIni = [];
-    namaBlok = '';
-    idBlok = '';
+    blokBaris = [];
+    namaBlok  = '';
+    idBlok    = '';
   };
 
-  for (const b of baris) {
-    const trimmed = b.trim();
+  for (const baris of semuaBaris) {
+    const trimmed = baris.trim();
     if (!trimmed) continue;
 
-    // Deteksi apakah baris ini adalah pembuka blok baru (mengandung nama peserta)
-    // Heuristik: baris pendek (<50 char) yang mengandung huruf kapital dan (ID) atau nomor urut
-    const isNamaBaris =
-      trimmed.length < 60 &&
-      /^(\d+[\.\s]*)?[A-Z][a-zA-Z]/.test(trimmed) &&
-      (
-        /\(\d{2,3}\)/.test(trimmed) ||          // ada (ID)
-        /\b\d{3}\b/.test(trimmed) ||             // ada 3 digit
-        /^\d+[\.\s]+[A-Z]/.test(trimmed)        // nomor urut
-      ) &&
-      !trimmed.match(/Kel|Kej|Im|Bil|Ul|Yos|Hak|Rut|Sam|Raj|Taw|Yes|Yer|Mat|Mrk|Luk|Yoh/i); // bukan baris kitab
-
-    if (isNamaBaris) {
+    if (adalahBarisPeserta(trimmed, kitabValid)) {
       flushBlok();
       namaBlok = ekstrakNama(trimmed);
       idBlok   = ekstrakId(trimmed);
     }
 
-    blokSaatIni.push(b);
+    blokBaris.push(trimmed);
   }
-  flushBlok(); // flush blok terakhir
+  flushBlok();
 
   return hasil.length ? hasil : [{
     nama: '—', id: '', bacaan: '',
-    status: 'skip', alasan: 'Tidak ada entri terdeteksi — coba lihat teks mentah OCR'
+    status: 'skip',
+    alasan: 'Tidak ada entri terdeteksi — coba lihat teks mentah OCR'
   }];
 }
 
@@ -864,20 +1029,39 @@ function tampilHasil(hasil) {
   tbody.innerHTML = '';
 
   hasil.forEach((h, i) => {
-    const rowClass = h.status === 'ok' ? 'row-ok' : h.status === 'review' ? 'row-review' : 'row-skip';
-    const badgeClass = h.status === 'ok' ? 'badge-ok' : h.status === 'review' ? 'badge-review' : 'badge-skip';
-    const badgeTxt = h.status === 'ok' ? '✅ Siap' : h.status === 'review' ? '⚠️ Cek' : '❌ Skip';
-    const cbChecked = h.status !== 'skip' ? 'checked' : '';
+    const adaTelat   = h.bacaan.includes('🔥');
+    const rowClass   = h.status === 'ok'
+                         ? (adaTelat ? 'row-ok' : 'row-ok')
+                         : h.status === 'review' ? 'row-review' : 'row-skip';
+    const badgeClass = h.status === 'ok'
+                         ? (adaTelat ? 'badge-ok' : 'badge-ok')
+                         : h.status === 'review' ? 'badge-review' : 'badge-skip';
+    const badgeTxt   = h.status === 'ok'
+                         ? (adaTelat ? '✅🔥 Siap+Telat' : '✅ Siap')
+                         : h.status === 'review' ? '⚠️ Cek' : '❌ Skip';
+    const cbChecked  = h.status !== 'skip' ? 'checked' : '';
     const cbDisabled = h.status === 'skip' ? 'disabled' : '';
 
-    const namaId = h.id ? `${h.nama} <span style="color:var(--ink-3);font-size:0.75rem">(${h.id})</span>` : h.nama;
-    const alasanHtml = h.alasan ? `<div style="font-size:0.7rem;color:var(--orange);margin-top:2px;">${h.alasan}</div>` : '';
+    const isLanjutan = h.nama.endsWith(' ↩');
+    const namaAsli   = isLanjutan ? h.nama.slice(0, -2) : h.nama;
+    const namaId     = h.id
+      ? `${namaAsli} <span style="color:var(--ink-3);font-size:0.75rem">(${h.id})</span>`
+      : namaAsli;
+    // Baris lanjutan: indent + label kecil
+    const namaHtml   = isLanjutan
+      ? `<span style="color:var(--ink-3);font-size:0.78rem;padding-left:12px;">↩ ${namaId}</span>`
+      : namaId;
+    // Alasan: orange untuk warning, sage untuk info telat
+    const alasanColor = h.alasan.startsWith('🔥') ? 'var(--sage-dark)' : 'var(--orange)';
+    const alasanHtml  = h.alasan
+      ? `<div style="font-size:0.7rem;color:${alasanColor};margin-top:2px;">${h.alasan}</div>`
+      : '';
 
     tbody.innerHTML += `
-      <tr class="${rowClass}" id="row-${i}">
+      <tr class="${rowClass}" id="row-${i}" ${isLanjutan ? 'style="border-top:none;"' : ''}>
         <td><input type="checkbox" class="cb-simpan" id="cb-${i}" ${cbChecked} ${cbDisabled}></td>
         <td style="color:var(--ink-3);font-size:0.78rem">${i+1}</td>
-        <td>${namaId}${alasanHtml}</td>
+        <td>${namaHtml}${alasanHtml}</td>
         <td><input type="text" class="edit-bacaan" id="bacaan-${i}" value="${h.bacaan}" placeholder="Ketik manual…" oninput="onEditBacaan(${i})"></td>
         <td><span class="badge ${badgeClass}" id="badge-${i}">${badgeTxt}</span></td>
       </tr>
@@ -902,24 +1086,145 @@ function onEditBacaan(i) {
 }
 
 // ════════════════════════════════════════════
-// SIMPAN KE FIREBASE
+// SIMPAN KE FIREBASE — dengan cek duplikat
 // ════════════════════════════════════════════
+
+/**
+ * Ekstrak kitab + bab dari string bacaan
+ * Contoh: "Keluaran 7 : 8,10" → { kitab: "Keluaran", bab: 7 }
+ * Contoh: "Keluaran 2 : 24 | Keluaran 1 : 17" → [{ kitab: "Keluaran", bab: 2 }, ...]
+ */
+function parseBacaanUntukDupCek(bacaan) {
+  const hasil = [];
+  // Split multi-entry (pakai " | ")
+  const bagian = bacaan.split('|');
+  for (const bag of bagian) {
+    // Hapus prefix 🔥 jika ada sebelum parsing
+    const bersih = bag.replace(/🔥\s*/g, '').trim();
+    // Cocokkan pola "NamaKitab ANGKA"
+    const m = bersih.match(/^([A-Za-z\s]+?)\s+(\d+)/);
+    if (m) {
+      hasil.push({
+        kitab: m[1].trim(),
+        bab  : parseInt(m[2])
+      });
+    }
+  }
+  return hasil;
+}
+
+/**
+ * Cek apakah satu entri sudah ada di Firestore
+ * Cocok jika: idPeserta sama + tanggal sama + bacaan mengandung kitab+bab yang sama
+ * Return: null (tidak duplikat) | dokumen pertama yang cocok
+ */
+async function cekDuplikat(idPeserta, isoTgl, bacaan) {
+  if (!idPeserta) return null; // tanpa ID tidak bisa cek akurat
+  const parsedBacaan = parseBacaanUntukDupCek(bacaan);
+  if (!parsedBacaan.length) return null;
+
+  try {
+    // Query Firestore: jurnal dengan idPeserta + tanggal yang sama
+    const snap = await window._db.collection('jurnal')
+      .where('idPeserta', '==', idPeserta)
+      .where('tanggal', '==', isoTgl)
+      .get({ source: 'server' });
+
+    if (snap.empty) return null;
+
+    // Cek apakah ada dokumen yang bacaannya mengandung kitab+bab yang sama
+    for (const doc of snap.docs) {
+      const bacaanLama = doc.data().bacaan || '';
+      const parsedLama = parseBacaanUntukDupCek(bacaanLama);
+      // Duplikat jika ada irisan kitab+bab
+      for (const baru of parsedBacaan) {
+        for (const lama of parsedLama) {
+          if (baru.kitab === lama.kitab && baru.bab === lama.bab) {
+            return doc.data(); // kembalikan data dokumen lama
+          }
+        }
+      }
+    }
+    return null;
+  } catch(e) {
+    console.warn('Cek duplikat gagal:', e);
+    return null; // kalau gagal cek, biarkan lanjut
+  }
+}
+
 async function simpanKeFirebase() {
   if (!window._db) { toast('❌ Firebase tidak terhubung!'); return; }
 
   const isoTgl = document.getElementById('inputTanggal').value;
   if (!isoTgl) { toast('⚠️ Tanggal tidak dipilih!'); return; }
 
-  const toSimpan = hasilParsing.filter((h, i) => {
+  // Kumpulkan entri yang dicentang
+  const indeksDipilih = [];
+  for (let i = 0; i < hasilParsing.length; i++) {
     const cb = document.getElementById(`cb-${i}`);
-    return cb && cb.checked && document.getElementById(`bacaan-${i}`).value.trim();
-  });
+    const bacaan = document.getElementById(`bacaan-${i}`)?.value.trim();
+    if (cb && cb.checked && bacaan) indeksDipilih.push(i);
+  }
 
-  if (!toSimpan.length) { toast('⚠️ Tidak ada entri yang dipilih!'); return; }
+  if (!indeksDipilih.length) { toast('⚠️ Tidak ada entri yang dipilih!'); return; }
 
   const btn = document.getElementById('btnSimpan');
   btn.disabled = true;
-  btn.textContent = '⏳ Menyimpan…';
+  btn.innerHTML = '🔍 Cek duplikat…';
+
+  // ── FASE 1: Cek duplikat semua entri yang dicentang ──
+  let adaDuplikat = false;
+  for (const i of indeksDipilih) {
+    const h = hasilParsing[i];
+    // Skip entri yang sudah pernah ditandai override
+    if (h._overrideKonfirmasi) continue;
+
+    const bacaan = document.getElementById(`bacaan-${i}`).value.trim();
+    const dupDoc = await cekDuplikat(h.id, isoTgl, bacaan);
+
+    if (dupDoc) {
+      adaDuplikat = true;
+      h._isDuplikat = true;
+
+      // Tandai baris sebagai duplikat
+      const row = document.getElementById(`row-${i}`);
+      if (row) {
+        row.className = 'row-duplikat';
+        row.style.borderLeft = '3px solid #f0ad4e';
+      }
+      const badge = document.getElementById(`badge-${i}`);
+      if (badge) {
+        badge.className = 'badge badge-duplikat';
+        badge.textContent = '⚠️ Duplikat';
+      }
+
+      // Tampilkan info bacaan lama di bawah nama
+      const namaCell = row?.querySelector('td:nth-child(3)');
+      if (namaCell && !namaCell.querySelector('.dup-info')) {
+        const dupInfo = document.createElement('div');
+        dupInfo.className = 'dup-info';
+        dupInfo.style.cssText = 'font-size:0.7rem;color:#856404;margin-top:3px;background:#fff3cd;border-radius:5px;padding:2px 6px;';
+        dupInfo.textContent = `⚠️ Sudah ada: ${dupDoc.bacaan || '(tanpa bacaan)'} — centang ulang untuk override`;
+        namaCell.appendChild(dupInfo);
+      }
+
+      // Uncheck otomatis
+      const cb = document.getElementById(`cb-${i}`);
+      if (cb) cb.checked = false;
+    }
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '🔥 Simpan ke Firebase';
+
+  if (adaDuplikat) {
+    toast('⚠️ Ada duplikat — tandai ulang untuk tetap simpan');
+    return; // Berhenti, biarkan admin review dulu
+  }
+
+  // ── FASE 2: Tidak ada duplikat baru → simpan semua yang dicentang ──
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Menyimpan…';
 
   let sukses = 0;
   let gagal  = 0;
@@ -931,6 +1236,8 @@ async function simpanKeFirebase() {
     if (!bacaan) continue;
 
     const h = hasilParsing[i];
+    const isOverride = !!h._isDuplikat; // entri ini duplikat yang sengaja di-override
+
     try {
       await window._db.collection('jurnal').add({
         nama      : h.nama,
@@ -939,12 +1246,14 @@ async function simpanKeFirebase() {
         bacaan    : bacaan,
         refleksi  : '',
         waktu     : firebase.firestore.Timestamp.now(),
-        sumber    : 'scanner'
+        sumber    : isOverride ? 'scanner-override' : 'scanner'
       });
       sukses++;
-      // Tandai row berhasil
       const row = document.getElementById(`row-${i}`);
       if (row) { row.style.opacity = '0.5'; row.style.background = '#d4edda'; }
+      // Hapus flag duplikat setelah berhasil simpan
+      h._isDuplikat = false;
+      h._overrideKonfirmasi = true;
     } catch(e) {
       console.error('Gagal simpan:', h.nama, e);
       gagal++;
@@ -955,7 +1264,7 @@ async function simpanKeFirebase() {
   btn.innerHTML = '🔥 Simpan ke Firebase';
 
   if (sukses > 0 && gagal === 0) {
-    toast(`✅ ${sukses} entri berhasil disimpan ke Firebase!`);
+    toast(`✅ ${sukses} entri berhasil disimpan!`);
   } else if (gagal > 0) {
     toast(`⚠️ ${sukses} berhasil, ${gagal} gagal — cek koneksi`);
   }
