@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Scanner WA — KMKS Admin</title>
+
+  <!-- Tesseract.js -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey            : "AIzaSyBRYbEnjS_yUP6iBvaGNS7OphxIYgL8OiI",
+      authDomain        : "eleazar-app.firebaseapp.com",
+      projectId         : "eleazar-app",
+      storageBucket     : "eleazar-app.firebasestorage.app",
+      messagingSenderId : "519327852561",
+      appId             : "1:519327852561:web:3735226d159f6b1a64a9b0"
+    };
+    try {
+      firebase.initializeApp(firebaseConfig);
+      window._db = firebase.firestore();
+    } catch(e) {
+      console.error('Firebase gagal:', e);
+      window._db = null;
+    }
+  </script>
+
+  <style>
+    :root {
+      --sage:       #4a7c59;
+      --sage-dark:  #3a6347;
+      --sage-light: #90b898;
+      --sage-pale:  #dceede;
+      --parch:      #f0f5f0;
+      --parch-2:    #e2ede4;
+      --ink:        #1a2a1e;
+      --ink-2:      #243828;
+      --ink-3:      #4a6e52;
+      --gold:       #a8c5a0;
+      --cream:      #f5faf5;
+      --radius:     14px;
+      --shadow:     rgba(26,55,30,0.13);
+      --red:        #c0392b;
+      --orange:     #e67e22;
+      --green:      #27ae60;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--parch);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, var(--sage-dark), var(--sage));
+      color: #fff;
+      padding: 16px 20px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header .icon { font-size: 1.5rem; }
+    header h1 { font-size: 1.05rem; font-weight: 700; line-height: 1.2; }
+    header p  { font-size: 0.75rem; opacity: 0.85; margin-top: 2px; }
+    #tglAktif {
+      margin-left: auto;
+      background: rgba(255,255,255,0.18);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 0.75rem;
+      text-align: right;
+      line-height: 1.4;
+    }
+    #tglAktif strong { display: block; font-size: 0.82rem; }
+
+    /* ── MAIN ── */
+    main { padding: 16px; max-width: 700px; margin: 0 auto; }
+
+    /* ── CARD ── */
+    .card {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: 0 2px 10px var(--shadow);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .card-head {
+      background: var(--parch-2);
+      padding: 10px 16px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--sage-dark);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--gold);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card-body { padding: 16px; }
+
+    /* ── UPLOAD ZONE ── */
+    .upload-zone {
+      border: 2.5px dashed var(--sage-light);
+      border-radius: 12px;
+      padding: 28px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      background: var(--sage-pale);
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag { background: #c8e6cc; border-color: var(--sage); }
+    .upload-zone input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-zone .uz-icon { font-size: 2rem; margin-bottom: 8px; }
+    .upload-zone p { font-size: 0.88rem; color: var(--ink-2); }
+    .upload-zone small { font-size: 0.75rem; color: var(--ink-3); margin-top: 4px; display: block; }
+
+    /* preview gambar */
+    #previewWrap { display: none; margin-top: 12px; position: relative; }
+    #previewImg { width: 100%; border-radius: 10px; border: 1px solid var(--gold); max-height: 320px; object-fit: contain; background: #f0f0f0; }
+    #btnGantiGambar {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(0,0,0,0.55); color: #fff;
+      border: none; border-radius: 8px; padding: 4px 10px;
+      font-size: 0.75rem; cursor: pointer;
+    }
+
+    /* ── TANGGAL ── */
+    #inputTanggal {
+      width: 100%; padding: 10px 12px;
+      border: 1.5px solid var(--gold);
+      border-radius: 10px; font-size: 0.95rem;
+      color: var(--ink); background: var(--cream);
+      margin-bottom: 4px;
+    }
+    #inputTanggal:focus { outline: none; border-color: var(--sage); }
+    #hintJadwal {
+      font-size: 0.78rem; color: var(--sage-dark);
+      background: var(--sage-pale); border-radius: 8px;
+      padding: 6px 10px; margin-top: 6px; display: none;
+    }
+
+    /* ── TOMBOL SCAN ── */
+    #btnScan {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, var(--sage-dark), var(--sage));
+      color: #fff; border: none; border-radius: 12px;
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: opacity 0.2s;
+    }
+    #btnScan:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ── PROGRESS ── */
+    #progressWrap { display: none; margin-top: 14px; }
+    #progressBar {
+      height: 8px; background: var(--parch-2);
+      border-radius: 99px; overflow: hidden; margin-bottom: 6px;
+    }
+    #progressFill {
+      height: 100%; background: var(--sage);
+      border-radius: 99px; width: 0%;
+      transition: width 0.3s;
+    }
+    #progressText { font-size: 0.78rem; color: var(--ink-3); text-align: center; }
+
+    /* ── TABEL HASIL ── */
+    #hasilWrap { display: none; }
+
+    .stat-row {
+      display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .stat-chip {
+      padding: 5px 12px; border-radius: 99px;
+      font-size: 0.78rem; font-weight: 600;
+    }
+    .chip-total  { background: var(--parch-2); color: var(--ink-2); }
+    .chip-ok     { background: #d4edda; color: #155724; }
+    .chip-review { background: #fff3cd; color: #856404; }
+    .chip-skip   { background: #f8d7da; color: #721c24; }
+
+    .tbl-wrap { overflow-x: auto; }
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    th {
+      background: var(--parch-2); color: var(--sage-dark);
+      padding: 8px 10px; text-align: left;
+      font-weight: 700; font-size: 0.75rem;
+      letter-spacing: 0.03em; text-transform: uppercase;
+      border-bottom: 2px solid var(--gold);
+      white-space: nowrap;
+    }
+    td {
+      padding: 8px 10px; border-bottom: 1px solid var(--parch-2);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr.row-ok     { background: #f0fff4; }
+    tr.row-review { background: #fffbf0; }
+    tr.row-skip   { background: #fff5f5; opacity: 0.7; }
+
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 99px; font-size: 0.72rem; font-weight: 700;
+    }
+    .badge-ok     { background: #d4edda; color: #155724; }
+    .badge-review { background: #fff3cd; color: #856404; }
+    .badge-skip   { background: #f8d7da; color: #721c24; }
+
+    /* edit inline */
+    .edit-bacaan {
+      border: 1.5px solid var(--gold); border-radius: 7px;
+      padding: 4px 7px; font-size: 0.82rem; width: 100%;
+      background: #fff; color: var(--ink);
+      font-family: monospace;
+    }
+    .edit-bacaan:focus { outline: none; border-color: var(--sage); }
+
+    /* checkbox kolom simpan */
+    .cb-simpan { width: 18px; height: 18px; accent-color: var(--sage); cursor: pointer; }
+
+    /* ── AKSI BAWAH ── */
+    .aksi-row {
+      display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;
+    }
+    .btn {
+      flex: 1; min-width: 120px; padding: 11px 16px;
+      border: none; border-radius: 11px;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: opacity 0.2s;
+    }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary  { background: var(--sage); color: #fff; }
+    .btn-secondary{ background: var(--parch-2); color: var(--ink-2); }
+    .btn-danger   { background: #fadbd8; color: var(--red); }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--ink); color: #fff;
+      padding: 10px 20px; border-radius: 99px;
+      font-size: 0.85rem; font-weight: 600;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      z-index: 999; opacity: 0;
+      transition: opacity 0.3s; pointer-events: none;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ── LOG OCR ── */
+    #logOcr {
+      display: none;
+      background: #1a1a1a; color: #7fff7f;
+      border-radius: 10px; padding: 12px;
+      font-family: monospace; font-size: 0.73rem;
+      max-height: 180px; overflow-y: auto;
+      margin-top: 10px; white-space: pre-wrap;
+    }
+    #btnToggleLog {
+      font-size: 0.75rem; color: var(--ink-3);
+      background: none; border: none; cursor: pointer;
+      margin-top: 6px; text-decoration: underline;
+    }
+
+    @media (max-width: 480px) {
+      main { padding: 12px; }
+      th, td { padding: 6px 8px; }
+      .aksi-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="icon">📷</div>
+  <div>
+    <h1>Scanner WA</h1>
+    <p>KMKS Santo Hieronimus — Admin</p>
+  </div>
+  <div id="tglAktif">
+    <strong id="kitabAktifLabel">—</strong>
+    <span id="tglHariIni">—</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- STEP 1: Tanggal -->
+  <div class="card">
+    <div class="card-head">📅 Tanggal Bacaan</div>
+    <div class="card-body">
+      <input type="date" id="inputTanggal">
+      <div id="hintJadwal"></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Upload gambar -->
+  <div class="card">
+    <div class="card-head">🖼️ Screenshot Chat WA</div>
+    <div class="card-body">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="inputGambar" accept="image/*" multiple>
+        <div class="uz-icon">📸</div>
+        <p>Tap untuk pilih screenshot</p>
+        <small>Bisa pilih lebih dari 1 gambar sekaligus</small>
+      </div>
+      <div id="previewWrap">
+        <img id="previewImg" alt="Preview">
+        <button id="btnGantiGambar" onclick="resetGambar()">✕ Ganti</button>
+        <div style="font-size:0.75rem;color:var(--ink-3);margin-top:6px;" id="namaFile"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Scan -->
+  <div class="card">
+    <div class="card-head">🔍 Proses OCR</div>
+    <div class="card-body">
+      <button id="btnScan" onclick="mulaiScan()" disabled>
+        <span>📷</span> Scan Screenshot
+      </button>
+      <div id="progressWrap">
+        <div id="progressBar"><div id="progressFill"></div></div>
+        <div id="progressText">Mempersiapkan…</div>
+      </div>
+      <button id="btnToggleLog" onclick="toggleLog()" style="display:none;">Lihat teks mentah OCR</button>
+      <div id="logOcr"></div>
+    </div>
+  </div>
+
+  <!-- STEP 4: Hasil -->
+  <div class="card" id="hasilWrap">
+    <div class="card-head">✅ Hasil Parsing</div>
+    <div class="card-body">
+      <div class="stat-row" id="statRow"></div>
+      <div class="tbl-wrap">
+        <table id="tblHasil">
+          <thead>
+            <tr>
+              <th>💾</th>
+              <th>#</th>
+              <th>Nama (ID)</th>
+              <th>Bacaan</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tblBody"></tbody>
+        </table>
+      </div>
+      <div class="aksi-row">
+        <button class="btn btn-primary" id="btnSimpan" onclick="simpanKeFirebase()">
+          🔥 Simpan ke Firebase
+        </button>
+        <button class="btn btn-secondary" onclick="resetSemua()">
+          🔄 Scan Ulang
+        </button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════
+// JADWAL PROGRAM (sama persis dengan index.html)
+// ════════════════════════════════════════════
+const JADWAL_PROGRAM = [
+  { nama:'Kejadian',    ab:'Kej',  babMulai:32, babAkhir:50, mulai:'2026-06-01', selesai:'2026-06-19',
+    regex:/Kej(?:adian)?\s*[.:)]*\s*(\d+)/i },
+  { nama:'Keluaran',    ab:'Kel',  babMulai:1,  babAkhir:40, mulai:'2026-06-20', selesai:'2026-07-29',
+    regex:/Kel(?:uaran)?\s*[.:)]*\s*(\d+)/i },
+  { nama:'Imamat',      ab:'Im',   babMulai:1,  babAkhir:27, mulai:'2026-07-30', selesai:'2026-08-25',
+    regex:/Im(?:amat)?\s*[.:)]*\s*(\d+)/i },
+  { nama:'Bilangan',    ab:'Bil',  babMulai:1,  babAkhir:36, mulai:'2026-08-26', selesai:'2026-09-30',
+    regex:/Bil(?:angan)?\s*[.:)]*\s*(\d+)/i },
+  { nama:'Ulangan',     ab:'Ul',   babMulai:1,  babAkhir:34, mulai:'2026-10-01', selesai:'2026-11-03',
+    regex:/Ul(?:angan)?\s*[.:)]*\s*(\d+)/i },
+  { nama:'Yosua',       ab:'Yos',  babMulai:1,  babAkhir:24, mulai:'2026-11-04', selesai:'2026-11-27',
+    regex:/Yos(?:ua)?\s*[.:)]*\s*(\d+)/i },
+  { nama:'Hakim-hakim', ab:'Hak',  babMulai:1,  babAkhir:21, mulai:'2026-11-28', selesai:'2026-12-18',
+    regex:/Hak(?:im(?:-hakim)?)?\s*[.:)]*\s*(\d+)/i },
+  { nama:'Rut',         ab:'Rut',  babMulai:1,  babAkhir:4,  mulai:'2026-12-19', selesai:'2026-12-22',
+    regex:/Rut\s*[.:)]*\s*(\d+)/i },
+  { nama:'1 Samuel',    ab:'1Sam', babMulai:1,  babAkhir:31, mulai:'2026-12-23', selesai:'2027-01-22',
+    regex:/1\s*Sam(?:uel)?\s*[.:)]*\s*(\d+)/i },
+  { nama:'2 Samuel',    ab:'2Sam', babMulai:1,  babAkhir:24, mulai:'2027-01-23', selesai:'2027-02-15',
+    regex:/2\s*Sam(?:uel)?\s*[.:)]*\s*(\d+)/i },
+  { nama:'1 Raja-raja', ab:'1Raj', babMulai:1,  babAkhir:22, mulai:'2027-02-16', selesai:'2027-03-09',
+    regex:/1\s*Raj(?:a(?:-raja)?)?\s*[.:)]*\s*(\d+)/i },
+  { nama:'2 Raja-raja', ab:'2Raj', babMulai:1,  babAkhir:25, mulai:'2027-03-10', selesai:'2027-04-03',
+    regex:/2\s*Raj(?:a(?:-raja)?)?\s*[.:)]*\s*(\d+)/i },
+  { nama:'Yesaya',      ab:'Yes',  babMulai:1,  babAkhir:66, mulai:'2028-07-19', selesai:'2028-09-22',
+    regex:/Yes(?:aya)?\s*[.:)]*\s*(\d+)/i },
+  { nama:'Wahyu',       ab:'Why',  babMulai:1,  babAkhir:22, mulai:'2029-11-27', selesai:'2029-12-18',
+    regex:/(?:Why|Wah(?:yu)?)\s*[.:)]*\s*(\d+)/i },
+];
+
+// Window transisi: berapa hari setelah pergantian kitab, laporan kitab lama masih diterima
+const WINDOW_TRANSISI_HARI = 4;
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+const BULAN_ID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+
+function tglWIB() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+}
+
+function isoWIB(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
+function fmtTgl(iso) {
+  const [y,m,d] = iso.split('-');
+  return `${parseInt(d)} ${BULAN_ID[parseInt(m)-1]} ${y}`;
+}
+
+function kitabAktifUntuk(isoTgl) {
+  const tgl = new Date(isoTgl + 'T12:00:00+07:00');
+  // Kitab utama hari ini
+  const utama = JADWAL_PROGRAM.find(p => {
+    const s = new Date(p.mulai + 'T00:00:00+07:00');
+    const e = new Date(p.selesai + 'T23:59:59+07:00');
+    return tgl >= s && tgl <= e;
+  });
+  // Kitab transisi: kitab sebelumnya jika masih dalam window
+  const idx = utama ? JADWAL_PROGRAM.indexOf(utama) : -1;
+  let transisi = null;
+  if (idx > 0) {
+    const prev = JADWAL_PROGRAM[idx - 1];
+    const selesaiPrev = new Date(prev.selesai + 'T23:59:59+07:00');
+    const diffMs = tgl - selesaiPrev;
+    const diffHari = diffMs / (1000*60*60*24);
+    if (diffHari <= WINDOW_TRANSISI_HARI) transisi = prev;
+  }
+  return { utama, transisi };
+}
+
+function updateHeaderInfo(isoTgl) {
+  const { utama } = kitabAktifUntuk(isoTgl);
+  document.getElementById('kitabAktifLabel').textContent = utama ? utama.nama : '—';
+  document.getElementById('tglHariIni').textContent = fmtTgl(isoTgl);
+
+  const hint = document.getElementById('hintJadwal');
+  const { transisi } = kitabAktifUntuk(isoTgl);
+  if (utama) {
+    hint.style.display = 'block';
+    hint.innerHTML = `📖 Kitab aktif: <strong>${utama.nama}</strong> (bab ${utama.babMulai}–${utama.babAkhir})` +
+      (transisi ? ` &nbsp;|&nbsp; 🔥 Transisi: <strong>${transisi.nama}</strong>` : '');
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const today = isoWIB(tglWIB());
+  document.getElementById('inputTanggal').value = today;
+  updateHeaderInfo(today);
+
+  document.getElementById('inputTanggal').addEventListener('change', e => {
+    updateHeaderInfo(e.target.value);
+  });
+
+  document.getElementById('inputGambar').addEventListener('change', handleFileSelect);
+
+  // Drag & drop
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+  });
+});
+
+// ════════════════════════════════════════════
+// FILE HANDLING
+// ════════════════════════════════════════════
+let fileList = [];
+
+function handleFileSelect(e) { handleFiles(e.target.files); }
+
+function handleFiles(files) {
+  fileList = Array.from(files);
+  if (!fileList.length) return;
+
+  // Preview gambar pertama saja
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('previewImg').src = ev.target.result;
+    document.getElementById('previewWrap').style.display = 'block';
+    document.getElementById('uploadZone').style.display = 'none';
+    const names = fileList.map(f => f.name).join(', ');
+    document.getElementById('namaFile').textContent = `${fileList.length} gambar: ${names}`;
+    document.getElementById('btnScan').disabled = false;
+  };
+  reader.readAsDataURL(fileList[0]);
+}
+
+function resetGambar() {
+  fileList = [];
+  document.getElementById('inputGambar').value = '';
+  document.getElementById('previewWrap').style.display = 'none';
+  document.getElementById('uploadZone').style.display = 'block';
+  document.getElementById('btnScan').disabled = true;
+  document.getElementById('hasilWrap').style.display = 'none';
+  document.getElementById('progressWrap').style.display = 'none';
+  document.getElementById('logOcr').style.display = 'none';
+  document.getElementById('btnToggleLog').style.display = 'none';
+}
+
+function resetSemua() {
+  resetGambar();
+  document.getElementById('hasilWrap').style.display = 'none';
+}
+
+// ════════════════════════════════════════════
+// OCR — TESSERACT
+// ════════════════════════════════════════════
+let rawOcrText = '';
+
+async function mulaiScan() {
+  if (!fileList.length) return;
+  const isoTgl = document.getElementById('inputTanggal').value;
+  if (!isoTgl) { toast('⚠️ Pilih tanggal bacaan dulu!'); return; }
+
+  document.getElementById('btnScan').disabled = true;
+  document.getElementById('progressWrap').style.display = 'block';
+  document.getElementById('hasilWrap').style.display = 'none';
+  document.getElementById('logOcr').style.display = 'none';
+  document.getElementById('btnToggleLog').style.display = 'none';
+  rawOcrText = '';
+
+  setProgress(0, 'Memuat Tesseract…');
+
+  try {
+    const worker = await Tesseract.createWorker('ind+eng', 1, {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          setProgress(Math.round(m.progress * 90), 'Membaca teks…');
+        }
+      }
+    });
+
+    let allText = '';
+    for (let i = 0; i < fileList.length; i++) {
+      setProgress(Math.round((i / fileList.length) * 85), `Scan gambar ${i+1}/${fileList.length}…`);
+      const { data: { text } } = await worker.recognize(fileList[i]);
+      allText += (i > 0 ? '\n---HALAMAN BARU---\n' : '') + text;
+    }
+    await worker.terminate();
+
+    rawOcrText = allText;
+    setProgress(95, 'Parsing hasil…');
+
+    const hasil = parseOcr(allText, isoTgl);
+    setProgress(100, 'Selesai!');
+
+    tampilHasil(hasil);
+    document.getElementById('btnToggleLog').style.display = 'block';
+    setTimeout(() => {
+      document.getElementById('progressWrap').style.display = 'none';
+    }, 800);
+
+  } catch(err) {
+    console.error(err);
+    toast('❌ Gagal scan: ' + err.message);
+    document.getElementById('btnScan').disabled = false;
+    setProgress(0, 'Gagal.');
+  }
+}
+
+function setProgress(pct, txt) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = txt;
+}
+
+function toggleLog() {
+  const el = document.getElementById('logOcr');
+  const btn = document.getElementById('btnToggleLog');
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    el.textContent = rawOcrText || '(kosong)';
+    btn.textContent = 'Sembunyikan teks mentah';
+  } else {
+    el.style.display = 'none';
+    btn.textContent = 'Lihat teks mentah OCR';
+  }
+}
+
+// ════════════════════════════════════════════
+// PARSER UTAMA
+// ════════════════════════════════════════════
+/**
+ * Normalisasi nama kitab dari OCR yang beragam
+ * Contoh: "Kel.", "Kel:", "Kel. :", "kel", "KEL", "Keluaran" → semua jadi terdeteksi
+ * Regex pada JADWAL_PROGRAM sudah handle Kel(?:uaran)?\s*[.:)]*\s*(\d+)
+ */
+function normalisasiTeks(teks) {
+  return teks
+    // Hapus pesan sistem WA
+    .replace(/Anda menghapus pesan ini/gi, '')
+    .replace(/Pesan ini dihapus/gi, '')
+    .replace(/This message was deleted/gi, '')
+    .replace(/Diedit\s+\d+\.\d+/gi, '')
+    // Normalisasi emoji teks (OCR kadang salah baca)
+    .replace(/\(buku|📖|🔖|\[buku\]/gi, '📖')
+    .replace(/\(api|🔥|\[api\]/gi, '🔥')
+    .replace(/\(hati|❤|♥|<3|\[hati\]/gi, '❤️')
+    // Normalisasi separator kitab: "Kel. :" → "Kel ", "Kel:" → "Kel ", "Kel." → "Kel "
+    .replace(/([A-Za-z])\s*[.:]+\s*(?=\d)/g, '$1 ')
+    // Normalisasi ayat: strip leading zeros "02" → "2"
+    .replace(/\b0+(\d+)\b/g, '$1');
+}
+
+/**
+ * Parse ayat dari string beragam format:
+ * "10" → "10"
+ * "10,12" → "10,12"
+ * "10-12" → "10-12"
+ * "8-10, 19-22" → "8-10,19-22"
+ * "14,15." → "14,15"
+ * "7-8\n\n" → "7-8"
+ */
+function parseAyat(str) {
+  if (!str) return '';
+  return str
+    .replace(/\s+/g, '')       // hapus semua spasi
+    .replace(/[.]+$/g, '')     // hapus titik di akhir
+    .replace(/[^\d,\-]/g, '')  // hanya angka, koma, strip
+    .replace(/,+/g, ',')       // koma ganda jadi satu
+    .replace(/^,|,$/g, '');    // hapus koma di awal/akhir
+}
+
+/**
+ * Cari semua entri bacaan dalam satu blok pesan
+ * Mengembalikan array: [{ tipe:'📖'|'🔥', kitab, bab, ayat }]
+ */
+function ekstrakBacaan(blokTeks, isoTgl) {
+  const { utama, transisi } = kitabAktifUntuk(isoTgl);
+  const kitabValid = [utama, transisi].filter(Boolean);
+  if (!kitabValid.length) return [];
+
+  const entries = [];
+  const baris = blokTeks.split('\n');
+
+  let tipeAktif = '📖'; // default
+  let kitabAktif = null;
+  let babAktif = null;
+
+  for (let i = 0; i < baris.length; i++) {
+    const b = baris[i].trim();
+    if (!b) continue;
+
+    // Deteksi tipe: 📖 atau 🔥
+    if (b.includes('📖') || b.match(/\bbuku\b/i)) tipeAktif = '📖';
+    if (b.includes('🔥') || b.match(/\bapi\b/i))  tipeAktif = '🔥';
+
+    // Coba cocokkan kitab dari baris ini
+    for (const kitab of kitabValid) {
+      const m = b.match(kitab.regex);
+      if (m) {
+        kitabAktif = kitab;
+        babAktif   = parseInt(m[1]);
+        // Validasi range bab
+        if (babAktif < kitab.babMulai || babAktif > kitab.babAkhir) {
+          kitabAktif = null; babAktif = null;
+        }
+        break;
+      }
+    }
+
+    // Deteksi ayat setelah ❤️
+    if ((b.includes('❤') || b.includes('♥') || b.match(/^[\d,\-\s]+$/)) && kitabAktif) {
+      // Ambil bagian angka setelah simbol hati
+      const ayatRaw = b.replace(/❤️?|♥/g, '').trim();
+      const ayat = parseAyat(ayatRaw);
+      if (ayat && /\d/.test(ayat)) {
+        entries.push({
+          tipe : tipeAktif,
+          kitab: kitabAktif,
+          bab  : babAktif,
+          ayat : ayat
+        });
+        // Reset untuk entri berikutnya
+        kitabAktif = null;
+        babAktif   = null;
+      }
+    }
+  }
+
+  // Fallback: kalau kitab terdeteksi tapi ayat tidak ada di baris terpisah
+  if (kitabAktif && babAktif && !entries.find(e => e.bab === babAktif && e.kitab === kitabAktif)) {
+    entries.push({ tipe: tipeAktif, kitab: kitabAktif, bab: babAktif, ayat: '' });
+  }
+
+  return entries;
+}
+
+/**
+ * Format output baku: "Keluaran 3 : 10,12"
+ * Jika 2 entri: "Keluaran 2 : 24,25 | Keluaran 1 : 17,21,22"
+ */
+function formatBacaan(entries) {
+  return entries.map(e => {
+    const ayatBagian = e.ayat ? ` : ${e.ayat}` : '';
+    return `${e.kitab.nama} ${e.bab}${ayatBagian}`;
+  }).join(' | ');
+}
+
+/**
+ * Ekstrak ID peserta dari teks: "(037)", "007", "(25)", "(005)"
+ */
+function ekstrakId(teks) {
+  // Cari dalam kurung dulu
+  const m1 = teks.match(/\((\d{2,3})\)/);
+  if (m1) return m1[1].padStart(3, '0');
+  // Tanpa kurung: 3 digit berurutan
+  const m2 = teks.match(/\b(\d{3})\b/);
+  if (m2) return m2[1];
+  return '';
+}
+
+/**
+ * Ekstrak nama peserta dari baris pertama blok
+ * Contoh: "08. Agus (037)" → "Agus"
+ * "Eka (021)" → "Eka"
+ * "Christina 007" → "Christina"
+ */
+function ekstrakNama(teks) {
+  return teks
+    .replace(/^\d+[\.\s]+/, '')   // hapus nomor urut di awal
+    .replace(/\(\d+\)/g, '')       // hapus (ID)
+    .replace(/\b\d{3}\b/g, '')     // hapus 3 digit tanpa kurung
+    .replace(/[~+\d\-]/g, '')      // hapus karakter tidak perlu
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+/**
+ * Parser utama: ambil teks OCR → array hasil
+ */
+function parseOcr(teksAsli, isoTgl) {
+  const teks = normalisasiTeks(teksAsli);
+  const { utama, transisi } = kitabAktifUntuk(isoTgl);
+
+  if (!utama) {
+    return [{ nama: '—', id: '', bacaan: '', status: 'skip', alasan: 'Tidak ada jadwal aktif untuk tanggal ini' }];
+  }
+
+  // Pisah per blok pesan — deteksi pola nama WA (baris yang mengandung nama + no HP atau ID)
+  // Strategi: split di setiap baris yang mengandung pola "Nama (ID)" atau nomor urut "08. Nama"
+  const blokRegex = /(?=(?:\d+[\.\s]+)?[A-Z][a-z]+(?:\s[A-Z][a-z]+)*\s*(?:\(\d{2,3}\)|\d{3})?)/;
+  const baris = teks.split('\n');
+
+  const hasil = [];
+  let blokSaatIni = [];
+  let namaBlok = '';
+  let idBlok = '';
+
+  const flushBlok = () => {
+    if (!blokSaatIni.length || !namaBlok) return;
+    const blokTeks = blokSaatIni.join('\n');
+    const entries  = ekstrakBacaan(blokTeks, isoTgl);
+    const bacaan   = formatBacaan(entries);
+
+    let status = 'review';
+    let alasan = '';
+    if (entries.length > 0 && entries[0].ayat) {
+      status = 'ok';
+    } else if (entries.length > 0) {
+      status = 'review'; alasan = 'Ayat tidak terdeteksi';
+    } else {
+      status = 'skip'; alasan = 'Kitab aktif tidak ditemukan';
+    }
+
+    if (namaBlok.length > 1) {
+      hasil.push({ nama: namaBlok, id: idBlok, bacaan, status, alasan });
+    }
+    blokSaatIni = [];
+    namaBlok = '';
+    idBlok = '';
+  };
+
+  for (const b of baris) {
+    const trimmed = b.trim();
+    if (!trimmed) continue;
+
+    // Deteksi apakah baris ini adalah pembuka blok baru (mengandung nama peserta)
+    // Heuristik: baris pendek (<50 char) yang mengandung huruf kapital dan (ID) atau nomor urut
+    const isNamaBaris =
+      trimmed.length < 60 &&
+      /^(\d+[\.\s]*)?[A-Z][a-zA-Z]/.test(trimmed) &&
+      (
+        /\(\d{2,3}\)/.test(trimmed) ||          // ada (ID)
+        /\b\d{3}\b/.test(trimmed) ||             // ada 3 digit
+        /^\d+[\.\s]+[A-Z]/.test(trimmed)        // nomor urut
+      ) &&
+      !trimmed.match(/Kel|Kej|Im|Bil|Ul|Yos|Hak|Rut|Sam|Raj|Taw|Yes|Yer|Mat|Mrk|Luk|Yoh/i); // bukan baris kitab
+
+    if (isNamaBaris) {
+      flushBlok();
+      namaBlok = ekstrakNama(trimmed);
+      idBlok   = ekstrakId(trimmed);
+    }
+
+    blokSaatIni.push(b);
+  }
+  flushBlok(); // flush blok terakhir
+
+  return hasil.length ? hasil : [{
+    nama: '—', id: '', bacaan: '',
+    status: 'skip', alasan: 'Tidak ada entri terdeteksi — coba lihat teks mentah OCR'
+  }];
+}
+
+// ════════════════════════════════════════════
+// TAMPIL HASIL
+// ════════════════════════════════════════════
+let hasilParsing = [];
+
+function tampilHasil(hasil) {
+  hasilParsing = hasil;
+  document.getElementById('hasilWrap').style.display = 'block';
+
+  // Statistik
+  const total   = hasil.length;
+  const ok      = hasil.filter(h => h.status === 'ok').length;
+  const review  = hasil.filter(h => h.status === 'review').length;
+  const skip    = hasil.filter(h => h.status === 'skip').length;
+
+  document.getElementById('statRow').innerHTML = `
+    <span class="stat-chip chip-total">📊 Total: ${total}</span>
+    <span class="stat-chip chip-ok">✅ Siap: ${ok}</span>
+    <span class="stat-chip chip-review">⚠️ Perlu cek: ${review}</span>
+    <span class="stat-chip chip-skip">❌ Dilewati: ${skip}</span>
+  `;
+
+  const tbody = document.getElementById('tblBody');
+  tbody.innerHTML = '';
+
+  hasil.forEach((h, i) => {
+    const rowClass = h.status === 'ok' ? 'row-ok' : h.status === 'review' ? 'row-review' : 'row-skip';
+    const badgeClass = h.status === 'ok' ? 'badge-ok' : h.status === 'review' ? 'badge-review' : 'badge-skip';
+    const badgeTxt = h.status === 'ok' ? '✅ Siap' : h.status === 'review' ? '⚠️ Cek' : '❌ Skip';
+    const cbChecked = h.status !== 'skip' ? 'checked' : '';
+    const cbDisabled = h.status === 'skip' ? 'disabled' : '';
+
+    const namaId = h.id ? `${h.nama} <span style="color:var(--ink-3);font-size:0.75rem">(${h.id})</span>` : h.nama;
+    const alasanHtml = h.alasan ? `<div style="font-size:0.7rem;color:var(--orange);margin-top:2px;">${h.alasan}</div>` : '';
+
+    tbody.innerHTML += `
+      <tr class="${rowClass}" id="row-${i}">
+        <td><input type="checkbox" class="cb-simpan" id="cb-${i}" ${cbChecked} ${cbDisabled}></td>
+        <td style="color:var(--ink-3);font-size:0.78rem">${i+1}</td>
+        <td>${namaId}${alasanHtml}</td>
+        <td><input type="text" class="edit-bacaan" id="bacaan-${i}" value="${h.bacaan}" placeholder="Ketik manual…" oninput="onEditBacaan(${i})"></td>
+        <td><span class="badge ${badgeClass}" id="badge-${i}">${badgeTxt}</span></td>
+      </tr>
+    `;
+  });
+
+  document.getElementById('btnScan').disabled = false;
+  toast(`✅ Selesai — ${total} entri terdeteksi`);
+}
+
+function onEditBacaan(i) {
+  const val = document.getElementById(`bacaan-${i}`).value.trim();
+  hasilParsing[i].bacaan = val;
+  // Update badge jadi review kalau diubah manual
+  const badge = document.getElementById(`badge-${i}`);
+  if (val) {
+    badge.className = 'badge badge-review';
+    badge.textContent = '✏️ Manual';
+    document.getElementById(`cb-${i}`).checked = true;
+    document.getElementById(`cb-${i}`).disabled = false;
+  }
+}
+
+// ════════════════════════════════════════════
+// SIMPAN KE FIREBASE
+// ════════════════════════════════════════════
+async function simpanKeFirebase() {
+  if (!window._db) { toast('❌ Firebase tidak terhubung!'); return; }
+
+  const isoTgl = document.getElementById('inputTanggal').value;
+  if (!isoTgl) { toast('⚠️ Tanggal tidak dipilih!'); return; }
+
+  const toSimpan = hasilParsing.filter((h, i) => {
+    const cb = document.getElementById(`cb-${i}`);
+    return cb && cb.checked && document.getElementById(`bacaan-${i}`).value.trim();
+  });
+
+  if (!toSimpan.length) { toast('⚠️ Tidak ada entri yang dipilih!'); return; }
+
+  const btn = document.getElementById('btnSimpan');
+  btn.disabled = true;
+  btn.textContent = '⏳ Menyimpan…';
+
+  let sukses = 0;
+  let gagal  = 0;
+
+  for (let i = 0; i < hasilParsing.length; i++) {
+    const cb = document.getElementById(`cb-${i}`);
+    if (!cb || !cb.checked) continue;
+    const bacaan = document.getElementById(`bacaan-${i}`).value.trim();
+    if (!bacaan) continue;
+
+    const h = hasilParsing[i];
+    try {
+      await window._db.collection('jurnal').add({
+        nama      : h.nama,
+        idPeserta : h.id || '',
+        tanggal   : isoTgl,
+        bacaan    : bacaan,
+        refleksi  : '',
+        waktu     : firebase.firestore.Timestamp.now(),
+        sumber    : 'scanner'
+      });
+      sukses++;
+      // Tandai row berhasil
+      const row = document.getElementById(`row-${i}`);
+      if (row) { row.style.opacity = '0.5'; row.style.background = '#d4edda'; }
+    } catch(e) {
+      console.error('Gagal simpan:', h.nama, e);
+      gagal++;
+    }
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '🔥 Simpan ke Firebase';
+
+  if (sukses > 0 && gagal === 0) {
+    toast(`✅ ${sukses} entri berhasil disimpan ke Firebase!`);
+  } else if (gagal > 0) {
+    toast(`⚠️ ${sukses} berhasil, ${gagal} gagal — cek koneksi`);
+  }
+}
+
+// ════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════
+let _toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
