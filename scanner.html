@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Scanner WA — Admin</title>
+  <title>Scanner Tabel v4 — Admin KMKS</title>
 
-  <!-- Tesseract.js -->
+  <!-- Tesseract.js — hanya dipakai untuk PNG/JPG -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <!-- PDF.js — ekstrak teks LANGSUNG dari PDF (tanpa OCR) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -45,8 +48,6 @@
       --radius:     14px;
       --shadow:     rgba(26,55,30,0.13);
       --red:        #c0392b;
-      --orange:     #e67e22;
-      --green:      #27ae60;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -58,86 +59,104 @@
       min-height: 100vh;
     }
 
-    /* ── HEADER ── */
     header {
       background: linear-gradient(135deg, var(--sage-dark), var(--sage));
       color: #fff;
       padding: 16px 20px 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      display: flex; align-items: center; gap: 12px;
       box-shadow: 0 2px 8px var(--shadow);
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      position: sticky; top: 0; z-index: 100;
     }
     header .icon { font-size: 1.5rem; }
-    header h1 { font-size: 1.05rem; font-weight: 700; line-height: 1.2; }
-    header p  { font-size: 0.75rem; opacity: 0.85; margin-top: 2px; }
+    header h1   { font-size: 1.05rem; font-weight: 700; line-height: 1.2; }
+    header p    { font-size: 0.75rem; opacity: 0.85; margin-top: 2px; }
     #tglAktif {
       margin-left: auto;
       background: rgba(255,255,255,0.18);
-      border-radius: 8px;
-      padding: 5px 10px;
-      font-size: 0.75rem;
-      text-align: right;
-      line-height: 1.4;
+      border-radius: 8px; padding: 5px 10px;
+      font-size: 0.75rem; text-align: right; line-height: 1.4;
     }
     #tglAktif strong { display: block; font-size: 0.82rem; }
 
-    /* ── MAIN ── */
     main { padding: 16px; max-width: 700px; margin: 0 auto; }
 
-    /* ── CARD ── */
     .card {
       background: #fff;
       border-radius: var(--radius);
       box-shadow: 0 2px 10px var(--shadow);
-      margin-bottom: 16px;
-      overflow: hidden;
+      margin-bottom: 16px; overflow: hidden;
     }
     .card-head {
       background: var(--parch-2);
       padding: 10px 16px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--sage-dark);
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      font-size: 0.78rem; font-weight: 700; color: var(--sage-dark);
+      letter-spacing: 0.04em; text-transform: uppercase;
       border-bottom: 1px solid var(--gold);
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      display: flex; align-items: center; gap: 6px;
     }
     .card-body { padding: 16px; }
 
     /* ── UPLOAD ZONE ── */
     .upload-zone {
       border: 2.5px dashed var(--sage-light);
-      border-radius: 12px;
-      padding: 28px 16px;
-      text-align: center;
-      cursor: pointer;
+      border-radius: 12px; padding: 32px 16px;
+      text-align: center; cursor: pointer;
       transition: background 0.2s, border-color 0.2s;
-      background: var(--sage-pale);
-      position: relative;
+      background: var(--sage-pale); position: relative;
     }
     .upload-zone:hover, .upload-zone.drag { background: #c8e6cc; border-color: var(--sage); }
     .upload-zone input[type=file] {
-      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+      position: absolute; inset: 0; opacity: 0;
+      cursor: pointer; width: 100%; height: 100%;
     }
-    .upload-zone .uz-icon { font-size: 2rem; margin-bottom: 8px; }
-    .upload-zone p { font-size: 0.88rem; color: var(--ink-2); }
-    .upload-zone small { font-size: 0.75rem; color: var(--ink-3); margin-top: 4px; display: block; }
+    .upload-zone .uz-icon { font-size: 2.2rem; margin-bottom: 8px; }
+    .upload-zone p    { font-size: 0.9rem; color: var(--ink-2); font-weight: 600; }
+    .upload-zone small { font-size: 0.75rem; color: var(--ink-3); margin-top: 5px; display: block; }
 
-    /* preview gambar */
-    #previewWrap { display: none; margin-top: 12px; position: relative; }
-    #previewImg { width: 100%; border-radius: 10px; border: 1px solid var(--gold); max-height: 320px; object-fit: contain; background: #f0f0f0; }
-    #btnGantiGambar {
-      position: absolute; top: 8px; right: 8px;
-      background: rgba(0,0,0,0.55); color: #fff;
-      border: none; border-radius: 8px; padding: 4px 10px;
-      font-size: 0.75rem; cursor: pointer;
+    /* ── FILE LIST ── */
+    #fileListWrap { display: none; margin-top: 12px; }
+    .file-list-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .file-list-header span { font-size: 0.8rem; font-weight: 700; color: var(--sage-dark); }
+    #btnTambahFile {
+      font-size: 0.75rem; padding: 4px 10px;
+      background: var(--sage-pale); color: var(--sage-dark);
+      border: 1.5px solid var(--sage-light); border-radius: 8px; cursor: pointer;
+      font-weight: 600;
+    }
+    #btnTambahFile:hover { background: var(--parch-2); }
+    .file-item {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--parch-2); border-radius: 9px;
+      padding: 8px 10px; margin-bottom: 6px;
+      border: 1px solid var(--gold);
+    }
+    .file-item .fi-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .file-item .fi-name {
+      flex: 1; font-size: 0.8rem; font-weight: 600;
+      color: var(--ink-2); white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .file-item .fi-type {
+      font-size: 0.7rem; padding: 2px 7px;
+      border-radius: 99px; font-weight: 700; flex-shrink: 0;
+    }
+    .fi-type-img { background: #fff3cd; color: #856404; }
+    .fi-type-pdf { background: #cce5ff; color: #004085; }
+    .file-item .fi-status {
+      font-size: 0.72rem; color: var(--ink-3); flex-shrink: 0; min-width: 60px; text-align: right;
+    }
+    .file-item .fi-del {
+      background: none; border: none; cursor: pointer;
+      font-size: 1rem; color: var(--ink-3); flex-shrink: 0; padding: 0 2px;
+    }
+    .file-item .fi-del:hover { color: var(--red); }
+    #btnHapusSemua {
+      font-size: 0.72rem; color: var(--ink-3);
+      background: none; border: none; cursor: pointer;
+      text-decoration: underline; margin-top: 4px;
     }
 
     /* ── TANGGAL ── */
@@ -146,17 +165,16 @@
       border: 1.5px solid var(--gold);
       border-radius: 10px; font-size: 0.95rem;
       color: var(--ink); background: var(--cream);
-      margin-bottom: 4px;
     }
     #inputTanggal:focus { outline: none; border-color: var(--sage); }
     #hintJadwal {
       font-size: 0.78rem; color: var(--sage-dark);
       background: var(--sage-pale); border-radius: 8px;
-      padding: 6px 10px; margin-top: 6px; display: none;
+      padding: 6px 10px; margin-top: 8px; display: none;
     }
 
-    /* ── TOMBOL SCAN ── */
-    #btnScan {
+    /* ── TOMBOL PROSES ── */
+    #btnProses {
       width: 100%; padding: 13px;
       background: linear-gradient(135deg, var(--sage-dark), var(--sage));
       color: #fff; border: none; border-radius: 12px;
@@ -164,27 +182,50 @@
       display: flex; align-items: center; justify-content: center; gap: 8px;
       transition: opacity 0.2s;
     }
-    #btnScan:disabled { opacity: 0.45; cursor: not-allowed; }
+    #btnProses:disabled { opacity: 0.45; cursor: not-allowed; }
 
     /* ── PROGRESS ── */
     #progressWrap { display: none; margin-top: 14px; }
-    #progressBar {
+    #progressBar  {
       height: 8px; background: var(--parch-2);
       border-radius: 99px; overflow: hidden; margin-bottom: 6px;
     }
     #progressFill {
       height: 100%; background: var(--sage);
-      border-radius: 99px; width: 0%;
-      transition: width 0.3s;
+      border-radius: 99px; width: 0%; transition: width 0.3s;
     }
     #progressText { font-size: 0.78rem; color: var(--ink-3); text-align: center; }
 
-    /* ── TABEL HASIL ── */
+    /* ── METODE BADGE ── */
+    #metodeBadge {
+      display: none;
+      font-size: 0.75rem; font-weight: 700;
+      padding: 3px 10px; border-radius: 99px;
+      margin-top: 6px; text-align: center;
+    }
+    .metode-pdf  { background: #cce5ff; color: #004085; }
+    .metode-ocr  { background: #fff3cd; color: #856404; }
+
+    /* ── LOG RAW ── */
+    #logWrap { margin-top: 8px; display: none; }
+    #btnToggleLog {
+      font-size: 0.75rem; color: var(--ink-3);
+      background: none; border: none; cursor: pointer;
+      text-decoration: underline;
+    }
+    #logOcr {
+      display: none;
+      background: #1a1a1a; color: #7fff7f;
+      border-radius: 10px; padding: 12px;
+      font-family: monospace; font-size: 0.72rem;
+      max-height: 200px; overflow-y: auto;
+      margin-top: 8px; white-space: pre-wrap;
+    }
+
+    /* ── HASIL ── */
     #hasilWrap { display: none; }
 
-    .stat-row {
-      display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;
-    }
+    .stat-row  { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
     .stat-chip {
       padding: 5px 12px; border-radius: 99px;
       font-size: 0.78rem; font-weight: 600;
@@ -195,50 +236,38 @@
     .chip-skip   { background: #f8d7da; color: #721c24; }
 
     .tbl-wrap { overflow-x: auto; }
-    table {
-      width: 100%; border-collapse: collapse;
-      font-size: 0.82rem;
-    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
     th {
       background: var(--parch-2); color: var(--sage-dark);
       padding: 8px 10px; text-align: left;
       font-weight: 700; font-size: 0.75rem;
       letter-spacing: 0.03em; text-transform: uppercase;
-      border-bottom: 2px solid var(--gold);
-      white-space: nowrap;
+      border-bottom: 2px solid var(--gold); white-space: nowrap;
     }
-    td {
-      padding: 8px 10px; border-bottom: 1px solid var(--parch-2);
-      vertical-align: middle;
-    }
+    td { padding: 8px 10px; border-bottom: 1px solid var(--parch-2); vertical-align: middle; }
     tr:last-child td { border-bottom: none; }
-    tr.row-ok       { background: #f0fff4; }
-    tr.row-review   { background: #fffbf0; }
-    tr.row-skip     { background: #fff5f5; opacity: 0.7; }
-    tr.row-duplikat { background: #fffbeb; border-left: 3px solid #f0ad4e; }
+    tr.row-ok     { background: #f0fff4; }
+    tr.row-review { background: #fffbf0; }
+    tr.row-skip   { background: #fff5f5; opacity: 0.7; }
+    tr.row-dup    { background: #fffbeb; border-left: 3px solid #f0ad4e; }
 
     .badge {
       display: inline-block; padding: 2px 8px;
       border-radius: 99px; font-size: 0.72rem; font-weight: 700;
     }
-    .badge-ok      { background: #d4edda; color: #155724; }
-    .badge-review  { background: #fff3cd; color: #856404; }
-    .badge-skip    { background: #f8d7da; color: #721c24; }
-    .badge-duplikat{ background: #fff3cd; color: #856404; border: 1.5px solid #f0ad4e; }
+    .badge-ok     { background: #d4edda; color: #155724; }
+    .badge-review { background: #fff3cd; color: #856404; }
+    .badge-skip   { background: #f8d7da; color: #721c24; }
+    .badge-dup    { background: #fff3cd; color: #856404; border: 1.5px solid #f0ad4e; }
 
-    /* edit inline */
     .edit-bacaan {
       border: 1.5px solid var(--gold); border-radius: 7px;
       padding: 4px 7px; font-size: 0.82rem; width: 100%;
-      background: #fff; color: var(--ink);
-      font-family: monospace;
+      background: #fff; color: var(--ink); font-family: monospace;
     }
     .edit-bacaan:focus { outline: none; border-color: var(--sage); }
-
-    /* checkbox kolom simpan */
     .cb-simpan { width: 18px; height: 18px; accent-color: var(--sage); cursor: pointer; }
 
-    /* ── AKSI BAWAH ── */
     .aksi-row {
       display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;
     }
@@ -250,11 +279,9 @@
       transition: opacity 0.2s;
     }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-primary  { background: var(--sage); color: #fff; }
-    .btn-secondary{ background: var(--parch-2); color: var(--ink-2); }
-    .btn-danger   { background: #fadbd8; color: var(--red); }
+    .btn-primary   { background: var(--sage); color: #fff; }
+    .btn-secondary { background: var(--parch-2); color: var(--ink-2); }
 
-    /* ── TOAST ── */
     #toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
       background: var(--ink); color: #fff;
@@ -263,28 +290,12 @@
       box-shadow: 0 4px 16px rgba(0,0,0,0.25);
       z-index: 999; opacity: 0;
       transition: opacity 0.3s; pointer-events: none;
-      white-space: nowrap;
     }
     #toast.show { opacity: 1; }
 
-    /* ── LOG OCR ── */
-    #logOcr {
-      display: none;
-      background: #1a1a1a; color: #7fff7f;
-      border-radius: 10px; padding: 12px;
-      font-family: monospace; font-size: 0.73rem;
-      max-height: 180px; overflow-y: auto;
-      margin-top: 10px; white-space: pre-wrap;
-    }
-    #btnToggleLog {
-      font-size: 0.75rem; color: var(--ink-3);
-      background: none; border: none; cursor: pointer;
-      margin-top: 6px; text-decoration: underline;
-    }
-
     @media (max-width: 480px) {
       main { padding: 12px; }
-      th, td { padding: 6px 8px; }
+      th, td { padding: 6px 7px; }
       .aksi-row { flex-direction: column; }
     }
   </style>
@@ -292,10 +303,10 @@
 <body>
 
 <header>
-  <div class="icon">📷</div>
+  <div class="icon">📋</div>
   <div>
-    <h1>Scanner WA</h1>
-    <p>New Eleazar Project — Admin</p>
+    <h1>Scanner Tabel v4</h1>
+    <p>KMKS Hieronimus — Multi-file</p>
   </div>
   <div id="tglAktif">
     <strong id="kitabAktifLabel">—</strong>
@@ -314,37 +325,52 @@
     </div>
   </div>
 
-  <!-- STEP 2: Upload gambar -->
+  <!-- STEP 2: Upload -->
   <div class="card">
-    <div class="card-head">🖼️ Screenshot Chat WA</div>
+    <div class="card-head">📄 Upload Tabel (PNG, JPG, atau PDF — bisa beberapa)</div>
     <div class="card-body">
       <div class="upload-zone" id="uploadZone">
-        <input type="file" id="inputGambar" accept="image/*" multiple>
-        <div class="uz-icon">📸</div>
-        <p>Tap untuk pilih screenshot</p>
-        <small>Bisa pilih lebih dari 1 gambar sekaligus</small>
+        <input type="file" id="inputFile"
+               accept="image/png,image/jpeg,.png,.jpg,.jpeg,application/pdf,.pdf"
+               multiple>
+        <div class="uz-icon">📄📸</div>
+        <p>Tap untuk pilih satu atau beberapa file</p>
+        <small>PNG / JPG → OCR Tesseract &nbsp;|&nbsp; PDF → Ekstrak teks langsung &nbsp;|&nbsp; Bisa multi-file</small>
       </div>
-      <div id="previewWrap">
-        <img id="previewImg" alt="Preview">
-        <button id="btnGantiGambar" onclick="resetGambar()">✕ Ganti</button>
-        <div style="font-size:0.75rem;color:var(--ink-3);margin-top:6px;" id="namaFile"></div>
+
+      <!-- Daftar file yang dipilih -->
+      <div id="fileListWrap">
+        <div class="file-list-header">
+          <span id="fileListCount">0 file dipilih</span>
+          <button id="btnTambahFile" onclick="document.getElementById('inputFileTambah').click()">
+            ＋ Tambah File
+          </button>
+          <input type="file" id="inputFileTambah"
+                 accept="image/png,image/jpeg,.png,.jpg,.jpeg,application/pdf,.pdf"
+                 multiple style="display:none;">
+        </div>
+        <div id="fileListItems"></div>
+        <button id="btnHapusSemua" onclick="resetFile()">🗑 Hapus semua</button>
       </div>
     </div>
   </div>
 
-  <!-- STEP 3: Scan -->
+  <!-- STEP 3: Proses -->
   <div class="card">
-    <div class="card-head">🔍 Proses OCR</div>
+    <div class="card-head">🔍 Proses</div>
     <div class="card-body">
-      <button id="btnScan" onclick="mulaiScan()" disabled>
-        <span>📷</span> Scan Screenshot
+      <button id="btnProses" onclick="mulaiProses()" disabled>
+        <span>⚙️</span> Proses File
       </button>
       <div id="progressWrap">
         <div id="progressBar"><div id="progressFill"></div></div>
         <div id="progressText">Mempersiapkan…</div>
       </div>
-      <button id="btnToggleLog" onclick="toggleLog()" style="display:none;">Lihat teks mentah OCR</button>
-      <div id="logOcr"></div>
+      <div id="metodeBadge"></div>
+      <div id="logWrap">
+        <button id="btnToggleLog" onclick="toggleLog()">Lihat teks mentah</button>
+        <div id="logOcr"></div>
+      </div>
     </div>
   </div>
 
@@ -354,7 +380,7 @@
     <div class="card-body">
       <div class="stat-row" id="statRow"></div>
       <div class="tbl-wrap">
-        <table id="tblHasil">
+        <table>
           <thead>
             <tr>
               <th>💾</th>
@@ -362,6 +388,7 @@
               <th>Nama (ID)</th>
               <th>Bacaan</th>
               <th>Status</th>
+              <th id="thFile" style="display:none;">File</th>
             </tr>
           </thead>
           <tbody id="tblBody"></tbody>
@@ -379,776 +406,860 @@
   </div>
 
 </main>
-
 <div id="toast"></div>
 
 <script>
-// ════════════════════════════════════════════
-// JADWAL PROGRAM (sama persis dengan index.html)
-// ════════════════════════════════════════════
-const JADWAL_PROGRAM = [
-  { nama:'Kejadian',    ab:'Kej',  babMulai:32, babAkhir:50, mulai:'2026-06-01', selesai:'2026-06-19',
-    regex:/Kej(?:adian)?\s*[.:)]*\s*(\d+)/i },
-  { nama:'Keluaran',    ab:'Kel',  babMulai:1,  babAkhir:40, mulai:'2026-06-20', selesai:'2026-07-29',
-    regex:/Kel(?:uaran)?\s*[.:)]*\s*(\d+)/i },
-  { nama:'Imamat',      ab:'Im',   babMulai:1,  babAkhir:27, mulai:'2026-07-30', selesai:'2026-08-25',
-    regex:/Im(?:amat)?\s*[.:)]*\s*(\d+)/i },
-  { nama:'Bilangan',    ab:'Bil',  babMulai:1,  babAkhir:36, mulai:'2026-08-26', selesai:'2026-09-30',
-    regex:/Bil(?:angan)?\s*[.:)]*\s*(\d+)/i },
-  { nama:'Ulangan',     ab:'Ul',   babMulai:1,  babAkhir:34, mulai:'2026-10-01', selesai:'2026-11-03',
-    regex:/Ul(?:angan)?\s*[.:)]*\s*(\d+)/i },
-  { nama:'Yosua',       ab:'Yos',  babMulai:1,  babAkhir:24, mulai:'2026-11-04', selesai:'2026-11-27',
-    regex:/Yos(?:ua)?\s*[.:)]*\s*(\d+)/i },
-  { nama:'Hakim-hakim', ab:'Hak',  babMulai:1,  babAkhir:21, mulai:'2026-11-28', selesai:'2026-12-18',
-    regex:/Hak(?:im(?:-hakim)?)?\s*[.:)]*\s*(\d+)/i },
-  { nama:'Rut',         ab:'Rut',  babMulai:1,  babAkhir:4,  mulai:'2026-12-19', selesai:'2026-12-22',
-    regex:/Rut\s*[.:)]*\s*(\d+)/i },
-  { nama:'1 Samuel',    ab:'1Sam', babMulai:1,  babAkhir:31, mulai:'2026-12-23', selesai:'2027-01-22',
-    regex:/1\s*Sam(?:uel)?\s*[.:)]*\s*(\d+)/i },
-  { nama:'2 Samuel',    ab:'2Sam', babMulai:1,  babAkhir:24, mulai:'2027-01-23', selesai:'2027-02-15',
-    regex:/2\s*Sam(?:uel)?\s*[.:)]*\s*(\d+)/i },
-  { nama:'1 Raja-raja', ab:'1Raj', babMulai:1,  babAkhir:22, mulai:'2027-02-16', selesai:'2027-03-09',
-    regex:/1\s*Raj(?:a(?:-raja)?)?\s*[.:)]*\s*(\d+)/i },
-  { nama:'2 Raja-raja', ab:'2Raj', babMulai:1,  babAkhir:25, mulai:'2027-03-10', selesai:'2027-04-03',
-    regex:/2\s*Raj(?:a(?:-raja)?)?\s*[.:)]*\s*(\d+)/i },
-  { nama:'Yesaya',      ab:'Yes',  babMulai:1,  babAkhir:66, mulai:'2028-07-19', selesai:'2028-09-22',
-    regex:/Yes(?:aya)?\s*[.:)]*\s*(\d+)/i },
-  { nama:'Wahyu',       ab:'Why',  babMulai:1,  babAkhir:22, mulai:'2029-11-27', selesai:'2029-12-18',
-    regex:/(?:Why|Wah(?:yu)?)\s*[.:)]*\s*(\d+)/i },
+'use strict';
+
+// ══════════════════════════════════════════════════════
+//  JADWAL PROGRAM
+// ══════════════════════════════════════════════════════
+const JADWAL = [
+  { nama:'Kejadian',    ab:'Kej',  mulai:'2026-05-01', selesai:'2026-06-19' },
+  { nama:'Keluaran',   ab:'Kel',  mulai:'2026-06-20', selesai:'2026-07-29' },
+  { nama:'Imamat',     ab:'Im',   mulai:'2026-07-30', selesai:'2026-08-25' },
+  { nama:'Bilangan',   ab:'Bil',  mulai:'2026-08-26', selesai:'2026-09-30' },
+  { nama:'Ulangan',    ab:'Ul',   mulai:'2026-10-01', selesai:'2026-11-03' },
+  { nama:'Yosua',      ab:'Yos',  mulai:'2026-11-04', selesai:'2026-11-27' },
+  { nama:'Hakim-hakim',ab:'Hak',  mulai:'2026-11-28', selesai:'2026-12-18' },
+  { nama:'Rut',        ab:'Rut',  mulai:'2026-12-19', selesai:'2026-12-22' },
+  { nama:'1 Samuel',   ab:'1Sam', mulai:'2026-12-23', selesai:'2027-01-22' },
+  { nama:'2 Samuel',   ab:'2Sam', mulai:'2027-01-23', selesai:'2027-02-15' },
+  { nama:'1 Raja-raja',ab:'1Raj', mulai:'2027-02-16', selesai:'2027-03-09' },
+  { nama:'2 Raja-raja',ab:'2Raj', mulai:'2027-03-10', selesai:'2027-04-03' },
 ];
 
-// Window transisi: berapa hari setelah pergantian kitab, laporan kitab lama masih diterima
-const WINDOW_TRANSISI_HARI = 4;
+// Map singkatan OCR → nama lengkap kitab
+// Kunci: huruf kapital semua, tanpa spasi
+const MAP_KITAB = {
+  'KEJ':'Kejadian','GEN':'Kejadian',
+  'KEL':'Keluaran','EX':'Keluaran','EKS':'Keluaran',
+  'IM':'Imamat','IMA':'Imamat','LEV':'Imamat',
+  'BIL':'Bilangan','NUM':'Bilangan',
+  'UL':'Ulangan','DEU':'Ulangan',
+  'YOS':'Yosua','JOS':'Yosua',
+  'HAK':'Hakim-hakim','JDG':'Hakim-hakim',
+  'RUT':'Rut',
+  '1SAM':'1 Samuel','2SAM':'2 Samuel',
+  '1RAJ':'1 Raja-raja','1KGS':'1 Raja-raja',
+  '2RAJ':'2 Raja-raja','2KGS':'2 Raja-raja',
+  'YES':'Yesaya','IS':'Yesaya',
+  'YER':'Yeremia','JER':'Yeremia',
+  'WHY':'Wahyu','REV':'Wahyu','WAH':'Wahyu',
+};
 
-// ════════════════════════════════════════════
-// INIT
-// ════════════════════════════════════════════
+const WINDOW_TRANSISI = 4; // hari
 const BULAN_ID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
 
-function tglWIB() {
-  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+// ── Utilitas tanggal ──
+function isoHariIni() {
+  return new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jakarta'}))
+    .toLocaleDateString('sv');
 }
-
-function isoWIB(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,'0');
-  const dd = String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${dd}`;
-}
-
 function fmtTgl(iso) {
   const [y,m,d] = iso.split('-');
   return `${parseInt(d)} ${BULAN_ID[parseInt(m)-1]} ${y}`;
 }
-
-function kitabAktifUntuk(isoTgl) {
-  const tgl = new Date(isoTgl + 'T12:00:00+07:00');
-  // Kitab utama hari ini
-  const utama = JADWAL_PROGRAM.find(p => {
-    const s = new Date(p.mulai + 'T00:00:00+07:00');
-    const e = new Date(p.selesai + 'T23:59:59+07:00');
-    return tgl >= s && tgl <= e;
-  });
-  // Kitab transisi: kitab sebelumnya jika masih dalam window
-  const idx = utama ? JADWAL_PROGRAM.indexOf(utama) : -1;
+function jadwalAktif(iso) {
+  const t = new Date(iso + 'T12:00:00+07:00');
+  const utama = JADWAL.find(j =>
+    t >= new Date(j.mulai+'T00:00:00+07:00') &&
+    t <= new Date(j.selesai+'T23:59:59+07:00')
+  );
+  if (!utama) return { utama: null, transisi: null };
+  const idx = JADWAL.indexOf(utama);
   let transisi = null;
   if (idx > 0) {
-    const prev = JADWAL_PROGRAM[idx - 1];
-    const selesaiPrev = new Date(prev.selesai + 'T23:59:59+07:00');
-    const diffMs = tgl - selesaiPrev;
-    const diffHari = diffMs / (1000*60*60*24);
-    if (diffHari <= WINDOW_TRANSISI_HARI) transisi = prev;
+    const prev = JADWAL[idx-1];
+    const diffHari = (t - new Date(prev.selesai+'T23:59:59+07:00')) / 86400000;
+    if (diffHari <= WINDOW_TRANSISI) transisi = prev;
   }
   return { utama, transisi };
 }
 
-function updateHeaderInfo(isoTgl) {
-  const { utama } = kitabAktifUntuk(isoTgl);
-  document.getElementById('kitabAktifLabel').textContent = utama ? utama.nama : '—';
-  document.getElementById('tglHariIni').textContent = fmtTgl(isoTgl);
-
+// ── Header ──
+function updateHeader(iso) {
+  const { utama, transisi } = jadwalAktif(iso);
+  document.getElementById('kitabAktifLabel').textContent = utama ? `📖 ${utama.nama}` : '—';
+  document.getElementById('tglHariIni').textContent = fmtTgl(iso);
   const hint = document.getElementById('hintJadwal');
-  const { transisi } = kitabAktifUntuk(isoTgl);
   if (utama) {
     hint.style.display = 'block';
-    hint.innerHTML = `📖 Kitab aktif: <strong>${utama.nama}</strong> (bab ${utama.babMulai}–${utama.babAkhir})` +
-      (transisi ? ` &nbsp;|&nbsp; 🔥 Transisi: <strong>${transisi.nama}</strong>` : '');
+    hint.innerHTML = `📖 Kitab aktif: <strong>${utama.nama}</strong>`
+      + (transisi ? ` &nbsp;|&nbsp; 🔥 Transisi: <strong>${transisi.nama}</strong>` : '');
   } else {
     hint.style.display = 'none';
   }
 }
 
+// ── Init ──
 window.addEventListener('DOMContentLoaded', () => {
-  const today = isoWIB(tglWIB());
+  const today = isoHariIni();
   document.getElementById('inputTanggal').value = today;
-  updateHeaderInfo(today);
+  updateHeader(today);
 
-  document.getElementById('inputTanggal').addEventListener('change', e => {
-    updateHeaderInfo(e.target.value);
-  });
+  document.getElementById('inputTanggal').addEventListener('change', e => updateHeader(e.target.value));
+  document.getElementById('inputFile').addEventListener('change', handleFileSelect);
+  document.getElementById('inputFileTambah').addEventListener('change', handleFileTambah);
 
-  document.getElementById('inputGambar').addEventListener('change', handleFileSelect);
-
-  // Drag & drop
   const zone = document.getElementById('uploadZone');
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
   zone.addEventListener('drop', e => {
     e.preventDefault(); zone.classList.remove('drag');
-    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+    if (e.dataTransfer.files.length) addFiles(Array.from(e.dataTransfer.files));
   });
 });
 
-// ════════════════════════════════════════════
-// FILE HANDLING
-// ════════════════════════════════════════════
-let fileList = [];
+// ══════════════════════════════════════════════════════
+//  FILE HANDLING — MULTI FILE
+// ══════════════════════════════════════════════════════
+let fileQueue = []; // array of File objects
 
-function handleFileSelect(e) { handleFiles(e.target.files); }
-
-function handleFiles(files) {
-  fileList = Array.from(files);
-  if (!fileList.length) return;
-
-  // Preview gambar pertama saja
-  const reader = new FileReader();
-  reader.onload = ev => {
-    document.getElementById('previewImg').src = ev.target.result;
-    document.getElementById('previewWrap').style.display = 'block';
-    document.getElementById('uploadZone').style.display = 'none';
-    const names = fileList.map(f => f.name).join(', ');
-    document.getElementById('namaFile').textContent = `${fileList.length} gambar: ${names}`;
-    document.getElementById('btnScan').disabled = false;
-  };
-  reader.readAsDataURL(fileList[0]);
+function handleFileSelect(e) {
+  addFiles(Array.from(e.target.files));
+  e.target.value = ''; // reset agar bisa pilih file yang sama lagi
 }
 
-function resetGambar() {
-  fileList = [];
-  document.getElementById('inputGambar').value = '';
-  document.getElementById('previewWrap').style.display = 'none';
-  document.getElementById('uploadZone').style.display = 'block';
-  document.getElementById('btnScan').disabled = true;
-  document.getElementById('hasilWrap').style.display = 'none';
-  document.getElementById('progressWrap').style.display = 'none';
-  document.getElementById('logOcr').style.display = 'none';
-  document.getElementById('btnToggleLog').style.display = 'none';
+function handleFileTambah(e) {
+  addFiles(Array.from(e.target.files));
+  e.target.value = '';
+}
+
+function addFiles(files) {
+  const valid = files.filter(f => {
+    const name = f.name.toLowerCase();
+    const isPdf = f.type === 'application/pdf' || name.endsWith('.pdf');
+    const isImg = f.type.startsWith('image/') || name.match(/\.(png|jpe?g)$/);
+    if (!isPdf && !isImg) {
+      toast(`⚠️ ${f.name}: hanya PNG, JPG, PDF.`);
+      return false;
+    }
+    // Hindari duplikat (nama + ukuran sama)
+    const dup = fileQueue.some(x => x.name === f.name && x.size === f.size);
+    if (dup) { toast(`⚠️ ${f.name} sudah ada.`); return false; }
+    return true;
+  });
+
+  fileQueue = [...fileQueue, ...valid];
+  renderFileList();
+}
+
+function removeFile(idx) {
+  fileQueue.splice(idx, 1);
+  renderFileList();
+}
+
+function renderFileList() {
+  const wrap    = document.getElementById('fileListWrap');
+  const zone    = document.getElementById('uploadZone');
+  const items   = document.getElementById('fileListItems');
+  const counter = document.getElementById('fileListCount');
+
+  if (fileQueue.length === 0) {
+    wrap.style.display = 'none';
+    zone.style.display = 'block';
+    document.getElementById('btnProses').disabled = true;
+    return;
+  }
+
+  zone.style.display = 'none';
+  wrap.style.display = 'block';
+  counter.textContent = `${fileQueue.length} file dipilih`;
+
+  items.innerHTML = '';
+  fileQueue.forEach((f, i) => {
+    const name   = f.name.toLowerCase();
+    const isPdf  = f.type === 'application/pdf' || name.endsWith('.pdf');
+    const icon   = isPdf ? '📄' : '🖼️';
+    const typeCls= isPdf ? 'fi-type-pdf' : 'fi-type-img';
+    const typeTxt= isPdf ? 'PDF' : 'IMG';
+    const size   = f.size > 1048576 ? (f.size/1048576).toFixed(1)+'MB' : Math.round(f.size/1024)+'KB';
+
+    items.innerHTML += `
+      <div class="file-item" id="fi-${i}">
+        <span class="fi-icon">${icon}</span>
+        <span class="fi-name" title="${f.name}">${f.name}</span>
+        <span class="fi-type ${typeCls}">${typeTxt}</span>
+        <span class="fi-status" id="fis-${i}">${size}</span>
+        <button class="fi-del" onclick="removeFile(${i})" title="Hapus">✕</button>
+      </div>
+    `;
+  });
+
+  document.getElementById('btnProses').disabled = false;
+}
+
+function setFileStatus(idx, txt) {
+  const el = document.getElementById(`fis-${idx}`);
+  if (el) el.textContent = txt;
+}
+
+function resetFile() {
+  fileQueue = [];
+  document.getElementById('inputFile').value              = '';
+  document.getElementById('fileListWrap').style.display   = 'none';
+  document.getElementById('uploadZone').style.display     = 'block';
+  document.getElementById('btnProses').disabled           = true;
+  document.getElementById('logWrap').style.display        = 'none';
+  document.getElementById('logOcr').style.display         = 'none';
+  document.getElementById('progressWrap').style.display   = 'none';
+  document.getElementById('metodeBadge').style.display    = 'none';
 }
 
 function resetSemua() {
-  resetGambar();
+  resetFile();
+  hasilParsing = [];
   document.getElementById('hasilWrap').style.display = 'none';
+  document.getElementById('tblBody').innerHTML       = '';
+  document.getElementById('statRow').innerHTML       = '';
 }
 
-// ════════════════════════════════════════════
-// OCR — TESSERACT
-// ════════════════════════════════════════════
-let rawOcrText = '';
+function setProgress(pct, txt) {
+  document.getElementById('progressFill').style.width  = pct + '%';
+  document.getElementById('progressText').textContent  = txt;
+}
 
-async function mulaiScan() {
-  if (!fileList.length) return;
+function toggleLog() {
+  const el  = document.getElementById('logOcr');
+  const btn = document.getElementById('btnToggleLog');
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    btn.textContent  = 'Sembunyikan teks mentah';
+  } else {
+    el.style.display = 'none';
+    btn.textContent  = 'Lihat teks mentah';
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  JALUR 1 — PDF: Ekstrak teks, fallback ke OCR jika scan
+// ══════════════════════════════════════════════════════
+async function ekstrakTeksPdf(file, onProgress) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let semua = '';
+
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page    = await pdf.getPage(p);
+    const content = await page.getTextContent();
+
+    const itemsByY = {};
+    for (const item of content.items) {
+      if (!item.str.trim()) continue;
+      const y = Math.round(item.transform[5] / 5) * 5;
+      if (!itemsByY[y]) itemsByY[y] = [];
+      itemsByY[y].push({ x: item.transform[4], str: item.str });
+    }
+
+    const sortedYs = Object.keys(itemsByY).map(Number).sort((a,b) => b - a);
+    for (const y of sortedYs) {
+      const row = itemsByY[y].sort((a,b) => a.x - b.x).map(i => i.str).join('\t');
+      semua += row + '\n';
+    }
+    if (p < pdf.numPages) semua += '---HALAMAN---\n';
+  }
+
+  // Jika teks kosong / sedikit → PDF adalah scan gambar → OCR tiap halaman
+  const teksSignifikan = semua.replace(/\s|---HALAMAN---/g, '');
+  if (teksSignifikan.length < 20) {
+    console.log('PDF tampak scan (teks kosong), beralih ke OCR per halaman…');
+    semua = '';
+    for (let p = 1; p <= pdf.numPages; p++) {
+      if (onProgress) onProgress(Math.round((p - 1) / pdf.numPages * 100));
+      const page     = await pdf.getPage(p);
+      const viewport = page.getViewport({ scale: 2.5 }); // skala besar = OCR lebih akurat
+      const canvas   = document.createElement('canvas');
+      canvas.width   = viewport.width;
+      canvas.height  = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      const blob   = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      const hasil  = await ocrGambarBlob(blob, pct => {
+        if (onProgress) onProgress(Math.round(((p - 1 + pct / 100) / pdf.numPages) * 100));
+      });
+      semua += `--- Halaman ${p} ---\n` + hasil + '\n';
+    }
+  }
+
+  return semua;
+}
+
+// ══════════════════════════════════════════════════════
+//  JALUR 2 — Gambar: OCR dengan Tesseract + TSV (posisi kolom)
+//  Menggunakan output TSV agar bisa rekonstruksi kolom tabel
+//  berdasarkan posisi X, bukan hanya spasi
+// ══════════════════════════════════════════════════════
+async function ocrGambar(file, onProgress) {
+  return ocrGambarBlob(file, onProgress);
+}
+
+async function ocrGambarBlob(blob, onProgress) {
+  const worker = await Tesseract.createWorker('ind+eng', 1, {
+    logger: m => {
+      if (m.status === 'recognizing text' && onProgress)
+        onProgress(Math.round(m.progress * 100));
+    }
+  });
+
+  // PSM 6: blok teks seragam; output TSV untuk posisi kata
+  await worker.setParameters({
+    tessedit_pagesegmode: '6',
+    tessedit_create_tsv:  '1',
+  });
+
+  const { data } = await worker.recognize(blob);
+  await worker.terminate();
+
+  // Rekonstruksi tabel dari TSV (posisi x,y,w,h tiap kata)
+  const teks = rekonstruksiDariTsv(data.tsv, data.text);
+  return teks;
+}
+
+/**
+ * Rekonstruksi baris tabel dari output TSV Tesseract.
+ * TSV berisi: level, page, block, par, line, word, left, top, width, height, conf, text
+ * Kita kelompokkan kata per baris (line_num sama),
+ * lalu deteksi kolom berdasarkan posisi X (cluster X).
+ */
+function rekonstruksiDariTsv(tsv, fallbackText) {
+  if (!tsv) return fallbackText || '';
+
+  const lines = tsv.trim().split('\n');
+  if (lines.length < 2) return fallbackText || '';
+
+  // Parse TSV: skip header baris pertama
+  const words = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split('\t');
+    if (cols.length < 12) continue;
+    const [level,,,, lineNum,, left, top,, , conf, ...textParts] = cols;
+    if (parseInt(level) !== 5) continue; // level 5 = kata
+    const text = textParts.join('\t').trim();
+    if (!text || conf < 0) continue;
+    words.push({
+      line : parseInt(lineNum) + parseInt(cols[1]) * 10000 + parseInt(cols[2]) * 1000, // unik per baris
+      left : parseInt(left),
+      top  : parseInt(top),
+      text,
+    });
+  }
+
+  if (words.length === 0) return fallbackText || '';
+
+  // Kelompokkan kata per baris (berdasarkan top ± toleransi)
+  const TOLERANSI_Y = 12;
+  const barisList = [];
+  let barisKini = [];
+  let topKini = -9999;
+
+  const sorted = [...words].sort((a, b) => a.top - b.top || a.left - b.left);
+  for (const w of sorted) {
+    if (barisKini.length === 0 || Math.abs(w.top - topKini) <= TOLERANSI_Y) {
+      barisKini.push(w);
+      topKini = barisKini.reduce((s, x) => s + x.top, 0) / barisKini.length;
+    } else {
+      barisList.push(barisKini.sort((a, b) => a.left - b.left));
+      barisKini = [w];
+      topKini = w.top;
+    }
+  }
+  if (barisKini.length) barisList.push(barisKini.sort((a, b) => a.left - b.left));
+
+  if (barisList.length === 0) return fallbackText || '';
+
+  // Deteksi batas kolom: kumpulkan semua posisi X kata di baris-baris panjang
+  // lalu cluster jadi 4-5 kolom
+  const xPositions = barisList
+    .filter(b => b.length >= 4)
+    .flatMap(b => b.map(w => w.left));
+
+  const batas = deteksiKolomX(xPositions);
+
+  // Jika tidak bisa deteksi kolom, kembalikan teks biasa
+  if (batas.length < 3) {
+    return barisList.map(b => b.map(w => w.text).join('  ')).join('\n');
+  }
+
+  // Rekonstruksi baris: tiap kata dipetakan ke kolom
+  const hasilBaris = [];
+  for (const baris of barisList) {
+    const kolom = new Array(batas.length).fill('');
+    for (const w of baris) {
+      const kIdx = petaKolom(w.left, batas);
+      kolom[kIdx] = (kolom[kIdx] ? kolom[kIdx] + ' ' : '') + w.text;
+    }
+    hasilBaris.push(kolom.map(k => k.trim()).join('\t'));
+  }
+
+  return hasilBaris.join('\n');
+}
+
+/** Cluster posisi X menjadi N kolom dengan gap terbesar */
+function deteksiKolomX(xs) {
+  if (!xs.length) return [];
+  const sorted = [...new Set(xs)].sort((a, b) => a - b);
+  // Cari gap besar (>30px) sebagai pemisah kolom
+  const gaps = [];
+  for (let i = 1; i < sorted.length; i++) {
+    gaps.push({ pos: (sorted[i] + sorted[i-1]) / 2, gap: sorted[i] - sorted[i-1] });
+  }
+  // Ambil top-4 gap terbesar sebagai pemisah → 5 kolom
+  const pemisah = gaps
+    .sort((a, b) => b.gap - a.gap)
+    .slice(0, 4)
+    .map(g => g.pos)
+    .sort((a, b) => a - b);
+  return [0, ...pemisah]; // batas kiri tiap kolom
+}
+
+/** Petakan posisi X kata ke indeks kolom terdekat */
+function petaKolom(x, batas) {
+  let idx = 0;
+  for (let i = 1; i < batas.length; i++) {
+    if (x >= batas[i] - 5) idx = i;
+  }
+  return idx;
+}
+
+// ══════════════════════════════════════════════════════
+//  PROSES UTAMA — MULTI FILE
+// ══════════════════════════════════════════════════════
+let allRawTeks = []; // simpan teks mentah per file
+
+async function mulaiProses() {
+  if (!fileQueue.length) return;
   const isoTgl = document.getElementById('inputTanggal').value;
   if (!isoTgl) { toast('⚠️ Pilih tanggal bacaan dulu!'); return; }
 
-  document.getElementById('btnScan').disabled = true;
+  document.getElementById('btnProses').disabled         = true;
   document.getElementById('progressWrap').style.display = 'block';
-  document.getElementById('hasilWrap').style.display = 'none';
-  document.getElementById('logOcr').style.display = 'none';
-  document.getElementById('btnToggleLog').style.display = 'none';
-  rawOcrText = '';
+  document.getElementById('hasilWrap').style.display    = 'none';
+  document.getElementById('logWrap').style.display      = 'none';
+  document.getElementById('logOcr').style.display       = 'none';
+  document.getElementById('metodeBadge').style.display  = 'none';
 
-  setProgress(0, 'Memuat Tesseract…');
+  const badge = document.getElementById('metodeBadge');
+  badge.style.display = 'none';
+
+  allRawTeks = [];
+  let semuaHasil = [];
+  const total = fileQueue.length;
 
   try {
-    const worker = await Tesseract.createWorker('ind+eng', 1, {
-      logger: m => {
-        if (m.status === 'recognizing text') {
-          setProgress(Math.round(m.progress * 90), 'Membaca teks…');
+    for (let i = 0; i < total; i++) {
+      const f      = fileQueue[i];
+      const isPdf  = f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf');
+      const baseP  = Math.round((i / total) * 90);
+      const nextP  = Math.round(((i + 1) / total) * 90);
+
+      setFileStatus(i, '⏳ Proses…');
+      setProgress(baseP, `[${i+1}/${total}] ${f.name}`);
+
+      let rawTeks = '';
+      try {
+        if (isPdf) {
+          setProgress(baseP + 2, `[${i+1}/${total}] Membaca PDF: ${f.name}`);
+          rawTeks = await ekstrakTeksPdf(f, pct => {
+            const p = baseP + Math.round((pct / 100) * (nextP - baseP - 2));
+            setProgress(p, `[${i+1}/${total}] PDF/OCR ${pct}%: ${f.name}`);
+          });
+          setFileStatus(i, '✅ PDF OK');
+        } else {
+          setProgress(baseP + 2, `[${i+1}/${total}] OCR: ${f.name}`);
+          rawTeks = await ocrGambar(f, pct => {
+            const p = baseP + Math.round((pct / 100) * (nextP - baseP - 2));
+            setProgress(p, `[${i+1}/${total}] OCR ${pct}%: ${f.name}`);
+          });
+          setFileStatus(i, '✅ OCR OK');
         }
+      } catch(fileErr) {
+        console.error(`Gagal proses ${f.name}:`, fileErr);
+        setFileStatus(i, '❌ Gagal');
+        allRawTeks.push(`=== ${f.name} ===\n(GAGAL: ${fileErr.message})\n`);
+        continue;
       }
-    });
 
-    let allText = '';
-    for (let i = 0; i < fileList.length; i++) {
-      setProgress(Math.round((i / fileList.length) * 85), `Scan gambar ${i+1}/${fileList.length}…`);
-      const { data: { text } } = await worker.recognize(fileList[i]);
-      allText += (i > 0 ? '\n---HALAMAN BARU---\n' : '') + text;
+      allRawTeks.push(`=== ${f.name} ===\n${rawTeks}`);
+
+      setProgress(nextP - 1, `[${i+1}/${total}] Parsing: ${f.name}`);
+      const hasilFile = parseTabel(rawTeks, isoTgl);
+      // Beri label sumber file pada tiap entri
+      hasilFile.forEach(h => { h._sumberFile = f.name; });
+      semuaHasil = semuaHasil.concat(hasilFile);
     }
-    await worker.terminate();
 
-    rawOcrText = allText;
-    setProgress(95, 'Parsing hasil…');
+    // Tampilkan teks mentah gabungan
+    document.getElementById('logOcr').textContent = allRawTeks.join('\n\n') || '(kosong)';
+    document.getElementById('logWrap').style.display = 'block';
 
-    const hasil = parseOcr(allText, isoTgl);
-    setProgress(100, 'Selesai!');
+    // Badge ringkasan metode
+    const adaPdf = fileQueue.some(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+    const adaImg = fileQueue.some(f => !f.name.toLowerCase().endsWith('.pdf'));
+    badge.textContent = adaPdf && adaImg ? '📄+🔍 PDF + OCR'
+                      : adaPdf           ? '📄 Mode PDF'
+                      :                    '🔍 Mode OCR';
+    badge.className   = adaPdf && !adaImg ? 'metode-pdf' : 'metode-ocr';
+    badge.style.display = 'block';
 
-    tampilHasil(hasil);
-    document.getElementById('btnToggleLog').style.display = 'block';
-    setTimeout(() => {
-      document.getElementById('progressWrap').style.display = 'none';
-    }, 800);
+    setProgress(100, `Selesai! ${total} file diproses.`);
+
+    // Filter entri kosong/dummy jika ada file yang berhasil
+    if (semuaHasil.length === 0) {
+      semuaHasil = [{ nama:'—', id:'', bacaan:'', status:'skip', alasan:'Tidak ada data yang berhasil diekstrak dari semua file.' }];
+    }
+
+    tampilHasil(semuaHasil);
+    setTimeout(() => { document.getElementById('progressWrap').style.display = 'none'; }, 700);
 
   } catch(err) {
     console.error(err);
-    toast('❌ Gagal scan: ' + err.message);
-    document.getElementById('btnScan').disabled = false;
+    toast('❌ Gagal: ' + err.message);
+    document.getElementById('btnProses').disabled = false;
     setProgress(0, 'Gagal.');
   }
 }
 
-function setProgress(pct, txt) {
-  document.getElementById('progressFill').style.width = pct + '%';
-  document.getElementById('progressText').textContent = txt;
-}
+// ══════════════════════════════════════════════════════
+//  PARSER TABEL BAKU
+//
+//  Format kolom: NO | NAMA | ID | KITAB_BAB | AYAT
+//
+//  Strategi:
+//  1. Split per baris
+//  2. Tiap baris → split oleh TAB atau multi-spasi (≥2)
+//  3. Deteksi 5 kolom → ambil NAMA(1), ID(2), KITAB_BAB(3), AYAT(4)
+//  4. Skip baris header
+//  5. Resolve singkatan kitab → nama lengkap
+//  6. Gabungkan baris orang yang sama (multi-bacaan) jadi 1 entri
+// ══════════════════════════════════════════════════════
 
-function toggleLog() {
-  const el = document.getElementById('logOcr');
-  const btn = document.getElementById('btnToggleLog');
-  if (el.style.display === 'none') {
-    el.style.display = 'block';
-    el.textContent = rawOcrText || '(kosong)';
-    btn.textContent = 'Sembunyikan teks mentah';
-  } else {
-    el.style.display = 'none';
-    btn.textContent = 'Lihat teks mentah OCR';
+/** Resolve singkatan kitab OCR → nama kitab lengkap */
+function resolveKitab(singkat) {
+  const key = singkat.toUpperCase().replace(/\s+/g, '').replace(/[^A-Z0-9]/g, '');
+  // Coba langsung
+  if (MAP_KITAB[key]) return MAP_KITAB[key];
+  // Coba 3 karakter pertama
+  const key3 = key.slice(0, 3);
+  if (MAP_KITAB[key3]) return MAP_KITAB[key3];
+  // Coba 2 karakter (untuk singkatan pendek: IM, UL)
+  const key2 = key.slice(0, 2);
+  if (MAP_KITAB[key2]) return MAP_KITAB[key2];
+  // Fuzzy: cari key yang paling mirip (toleransi 1 karakter beda)
+  for (const k of Object.keys(MAP_KITAB)) {
+    if (Math.abs(k.length - key.length) <= 1 && levenshtein(k, key) <= 1) {
+      return MAP_KITAB[k];
+    }
   }
+  return null;
 }
 
-// ════════════════════════════════════════════
-// PARSER UTAMA v2 — robust multi-anomali
-// ════════════════════════════════════════════
-
-// ── Regex kitab: versi toleran untuk semua anomali penulisan ──
-// Dibangun dinamis dari JADWAL_PROGRAM
-// Menangani: "Kel 3", "Kel:3", "Kel. 3", "Kel.3", "KEL3", "kel 3", "Keluaran3"
-function buildKitabRegex(jadwal) {
-  // Ambil singkatan dan nama lengkap, buat regex sangat toleran
-  // Contoh Kel → /(?:Keluaran|KEL|Kel|kel)\s*[.:),-]?\s*(\d+)/i
-  return jadwal.map(p => {
-    const ab  = p.ab.replace(/\s+/g, '\\s*');  // "1Sam" → "1\\s*Sam"
-    const nm  = p.nama.replace(/\s+/g, '\\s*'); // "1 Samuel" → "1\\s*Samuel"
-    // Escape karakter khusus di nama kitab (misal "Hakim-hakim")
-    const nmEsc = nm.replace(/[-]/g, '[-\\s]*');
-    const abEsc = ab.replace(/[-]/g, '[-\\s]*');
-    // Pattern: (singkatan|nama_lengkap) lalu separator opsional lalu angka
-    const pat = `(?:${nmEsc}|${abEsc})\\s*[.:),-]?\\s*(\\d+)`;
-    return { ...p, regexToleran: new RegExp(pat, 'i') };
-  });
+/** Jarak Levenshtein sederhana */
+function levenshtein(a, b) {
+  if (a === b) return 0;
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m+1}, (_, i) => [i, ...Array(n).fill(0)]);
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1]
+        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
 }
 
-/**
- * Bersihkan noise dari teks OCR sebelum diproses
- * Menangani: pesan sistem WA, header pengirim WA, timestamp, teks diedit
- */
-function bersihkanNoise(teks) {
-  return teks
-    // ── Pesan sistem WA ──
-    .replace(/Anda menghapus pesan ini/gi, '')
-    .replace(/Pesan ini dihapus/gi, '')
-    .replace(/This message was deleted/gi, '')
-    .replace(/You deleted this message/gi, '')
-    // ── Teks "Diedit HH.MM" yang muncul setelah edit pesan ──
-    .replace(/Diedit\s+\d{1,2}[.:]\d{2}/gi, '')
-    // ── Header pengirim WA: "~ Nama Lengkap +62 xxx-xxxx-xxxx" ──
-    // Contoh: "~ Rini Jayanti +62 813-2766-991"
-    // Contoh: "~ A 60 ES +62 812-3612-2332"
-    .replace(/^~\s*.+?\+62[\d\s\-]+$/gm, '')
-    // ── Timestamp berdiri sendiri: "07.41", "06.49", "13.24" ──
-    .replace(/^\d{2}[.:]\d{2}$/gm, '')
-    // ── Timestamp dengan label: "Diedit 08.39" ──
-    .replace(/Diedit\s+\d{2}[.:]\d{2}/gi, '')
-    // ── Tanda baca WA lainnya ──
-    .replace(/---HALAMAN BARU---/g, '')
-    // ── Baris kosong berlebih → satu baris kosong ──
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-/**
- * Normalisasi representasi simbol dari OCR yang kadang salah baca
- * 📖 bisa terbaca: [buku], (buku), huruf O, dll
- * ❤️ bisa terbaca: <3, [hati], (hati), o, 0, huruf O setelah baris kosong
- */
-function normalisasiSimbol(teks) {
-  return teks
-    // Normalisasi 📖
-    .replace(/\[buku\]|\(buku\)|🔖/gi, '📖')
-    // Normalisasi 🔥
-    .replace(/\[api\]|\(api\)/gi, '🔥')
-    // Normalisasi ❤️: bentuk teks
-    .replace(/\[hati\]|\(hati\)|<3/gi, '❤️')
-    // ❤ (unicode tanpa variation selector) → ❤️
-    .replace(/❤(?!️)/g, '❤️')
-    // ♥ → ❤️
-    .replace(/♥/g, '❤️');
-}
-
-/**
- * Normalisasi penulisan kitab yang beragam agar regex lebih mudah cocok:
- * - "Kel. :" → "Kel "     separator titik-titik dua
- * - "Kel:"   → "Kel "     titik dua langsung
- * - "Kel."   → "Kel "     titik langsung sebelum angka
- * - "Kel3"   → "Kel 3"    dempet angka
- * - "KEL 3"  → sudah ditangani oleh flag /i di regex
- */
-function normalisasiKitab(teks) {
-  return teks
-    // Separator majemuk: "Kel. :" atau "Kel :" → "Kel "
-    .replace(/([A-Za-z])\s*\.\s*:\s*/g, '$1 ')
-    // Titik dua langsung: "Kel:" → "Kel "
-    .replace(/([A-Za-z])\s*:\s*(?=\d)/g, '$1 ')
-    // Titik langsung sebelum angka: "Kel.3" → "Kel 3"
-    .replace(/([A-Za-z])\.\s*(?=\d)/g, '$1 ')
-    // Dempet tanpa spasi: "Kel3" → "Kel 3" (hanya jika bukan angka sebelumnya)
-    .replace(/([A-Za-z])(\d)/g, '$1 $2')
-    // Strip leading zeros pada angka: "03" → "3"
-    .replace(/\b0+(\d+)\b/g, '$1');
-}
-
-/**
- * Normalisasi penulisan ayat yang beragam:
- * "20, 21, 23"  → "20,21,23"
- * "20,21,23"    → "20,21,23"   (sudah bersih)
- * "21, 22-23"   → "21,22-23"
- * "21 - 23"     → "21-23"
- * "21-23"       → "21-23"      (sudah bersih)
- * "14,15."      → "14,15"      (hapus trailing titik)
- * "8-10, 19-22" → "8-10,19-22"
- */
-function normalisasiAyat(str) {
+/** Normalisasi ayat: bersihkan, jaga format "10,11,12" atau "7-8" */
+function normAyat(str) {
   if (!str) return '';
-  return str
-    .trim()
-    .replace(/\s*-\s*/g, '-')    // "21 - 23" → "21-23"
-    .replace(/\s*,\s*/g, ',')    // "20, 21" → "20,21"
-    .replace(/[.;]+$/g, '')      // hapus trailing titik/titik koma
-    .replace(/[^\d,\-]/g, '')    // hanya sisakan angka, koma, strip
-    .replace(/,+/g, ',')         // koma ganda → satu
-    .replace(/^[,\-]|[,\-]$/g,''); // hapus koma/strip di ujung
+  const s = str.trim();
+  if (/^[-–—]+$/.test(s) || s === '') return '';
+  return s
+    .replace(/[–—]/g, '-')
+    .replace(/\s*,\s*/g, ',')
+    .replace(/\s*-\s*/g, '-')
+    .replace(/[^\d,\-]/g, '')
+    .replace(/^[,\-]|[,\-]$/g, '');
 }
 
-/**
- * Ekstrak ID peserta dari teks
- * Anomali yang ditangani:
- * - "(037)" → "037"   standar 3 digit dalam kurung
- * - "(37)"  → "037"   2 digit dalam kurung → pad jadi 3
- * - "037"   → "037"   3 digit tanpa kurung
- * - "37"    (2 digit tanpa kurung) → diabaikan, ambigu dengan nomor urut
- */
-function ekstrakId(teks) {
-  // Prioritas 1: dalam kurung, 2-3 digit
-  const m1 = teks.match(/\((\d{2,3})\)/);
-  if (m1) return m1[1].padStart(3, '0');
-  // Prioritas 2: tanpa kurung, tepat 3 digit, bukan bagian dari angka lebih panjang
-  const m2 = teks.match(/(?<!\d)(\d{3})(?!\d)/);
-  if (m2) return m2[1];
-  return '';
+/** Split baris tabel → array kolom (toleran untuk TAB atau spasi ganda atau pipe) */
+function splitKolom(baris) {
+  // Coba split dengan TAB dulu (PDF.js dan rekonstruksi TSV menghasilkan TAB)
+  let cols = baris.split('\t').map(s => s.trim()).filter(s => s !== '');
+  if (cols.length >= 4) return cols;
+
+  // Fallback: split dengan 2+ spasi (hasil OCR teks biasa)
+  cols = baris.split(/\s{2,}/).map(s => s.trim()).filter(s => s !== '');
+  if (cols.length >= 4) return cols;
+
+  // Fallback: split dengan pipe | (kadang OCR salah baca garis tabel sebagai |)
+  cols = baris.split('|').map(s => s.trim()).filter(s => s !== '');
+  if (cols.length >= 4) return cols;
+
+  // Fallback: split 1 spasi (khusus baris yang mungkin hanya 4-5 token pendek)
+  // Hanya berlaku jika kolom ke-0 terlihat seperti angka dan total token <= 7
+  cols = baris.trim().split(/\s+/);
+  if (cols.length >= 4 && cols.length <= 7 && /^\d+$/.test(cols[0])) return cols;
+
+  return [];
 }
 
-/**
- * Ekstrak nama peserta dari baris nama
- * Anomali yang ditangani:
- * - "08. Agus (037)"     → "Agus"
- * - "5.Yuni (041)"       → "Yuni"
- * - "Eka (021)"          → "Eka"       (tanpa nomor urut)
- * - "Nanang (013)"       → "Nanang"    (tanpa nomor urut)
- * - "**Ari L (005)**"    → "Ari L"     (bold markdown WA)
- * - "Agus 037"           → "Agus"      (ID tanpa kurung)
- * - "Tri (003)"          → "Tri"       (nama pendek)
- */
-function ekstrakNama(teks) {
-  return teks
-    .replace(/\*+/g, '')             // hapus bold markdown WA (**nama**)
-    .replace(/^\d+\s*[.\s]\s*/, '')  // hapus nomor urut di awal: "08. " atau "5."
-    .replace(/\(\d{2,3}\)/g, '')     // hapus (ID) dalam kurung
-    .replace(/(?<!\d)\d{3}(?!\d)/g, '') // hapus ID 3 digit tanpa kurung
-    .replace(/[~+\-_]/g, ' ')        // ganti karakter noise jadi spasi
-    .replace(/\s+/g, ' ')            // spasi berlebih → satu spasi
-    .trim();
+/** Cek apakah baris ini adalah baris header (NO, NAMA, ID, …) */
+function isHeader(cols) {
+  const gabung = cols.join(' ').toUpperCase();
+  return (
+    gabung.includes('NAMA') ||
+    gabung.includes('KITAB') ||
+    gabung.includes('AYAT') ||
+    gabung.includes('KMABEAS') || // OCR salah baca KITAB_BAB
+    gabung.includes('KITAB_BAB') ||
+    (cols[0] === 'NO' || cols[0] === '#' || cols[0] === 'J')
+  );
 }
 
-/**
- * Deteksi apakah satu baris adalah baris nama peserta
- *
- * Baris nama PASTI mengandung salah satu:
- * (a) ID dalam kurung: (037), (21), (005)
- * (b) Nomor urut di awal + huruf kapital: "08. Agus", "5.Yuni"
- * (c) ID 3 digit tanpa kurung + nama: "Agus 037"
- *
- * Baris nama TIDAK mengandung:
- * - Nama kitab aktif (Kel, Kej, Im, dst)
- * - Simbol bacaan (📖, ❤️)
- * - Nomor telepon (+62)
- * - Hanya angka saja
- * - Timestamp (HH.MM)
- * - Header WA (dimulai ~)
- */
-function adalahBarisPeserta(baris, kitabValid) {
-  const b = baris.trim();
-  if (!b || b.length > 80) return false;
+/** Cek apakah kolom pertama berisi angka (nomor urut) */
+function isAngka(s) { return /^\d+$/.test(s.trim()); }
 
-  // Buang jelas bukan nama
-  if (b.startsWith('~')) return false;                    // header WA
-  if (/^\+62/.test(b)) return false;                     // nomor telepon
-  if (/^\d{2}[.:]\d{2}$/.test(b)) return false;         // timestamp
-  if (/^[\d\s,.\-]+$/.test(b)) return false;             // hanya angka
-  if (b.includes('📖') || b.includes('❤️') || b.includes('🔥')) return false; // baris bacaan
+function parseTabel(rawTeks, isoTgl) {
+  const { utama, transisi } = jadwalAktif(isoTgl);
+  const kitabAktif = [utama, transisi].filter(Boolean).map(k => k.nama);
 
-  // Buang baris yang mengandung nama kitab aktif
-  const namaKitab = kitabValid.flatMap(k => [k.ab, k.nama.split(' ').pop()]);
-  const kitabPat  = new RegExp(`\\b(${namaKitab.join('|')})\\b`, 'i');
-  if (kitabPat.test(b)) return false;
+  const baris = rawTeks
+    .split('\n')
+    .map(b => b.replace(/---HALAMAN---/g, '').trim())
+    .filter(b => b.length > 1);
 
-  // POSITIF: mengandung ID dalam kurung
-  if (/\(\d{2,3}\)/.test(b)) return true;
-  // POSITIF: nomor urut di awal diikuti nama dengan huruf kapital
-  if (/^\d+\s*[.]\s*[A-Z]/.test(b)) return true;
-  // POSITIF: nama kapital + 3 digit tanpa kurung (misal "Agus 037")
-  if (/[A-Z][a-z]+\s+\d{3}(?!\d)/.test(b)) return true;
+  // ── Pass 1: ekstrak semua baris data valid ──
+  const rows = []; // { no, nama, id, kitabRaw, ayatRaw }
 
-  return false;
-}
+  for (const baris_item of baris) {
+    const cols = splitKolom(baris_item);
+    if (cols.length < 4) continue;
+    if (isHeader(cols)) continue;
 
-/**
- * Ekstrak semua pasangan (kitab+bab, ayat) dari satu blok pesan peserta
- * Menangani multi-bacaan: satu orang kirim Kel 2 + Kel 3 sekaligus
- *
- * Strategi: scan baris per baris, cari pola kitab lalu cari ayat di baris berikutnya
- * (atau di baris yang sama jika inline, misal "📖 Kel 3 ❤️ 10,12")
- */
-function ekstrakBacaanBlok(blokBaris, kitabValid, jadwalToleran) {
-  const entries = [];
-  let tipeAktif  = '📖';
-  let kitabPending = null;
-  let babPending   = null;
+    // Deteksi posisi kolom — fleksibel terhadap urutan
+    // Coba format standar: NO | NAMA | ID | KITAB_BAB | AYAT
+    let no, nama, id, kitabRaw, ayatRaw;
 
-  for (let i = 0; i < blokBaris.length; i++) {
-    const b = blokBaris[i].trim();
-    if (!b) continue;
-
-    // Tipe bacaan
-    if (b.includes('📖')) tipeAktif = '📖';
-    if (b.includes('🔥')) tipeAktif = '🔥';
-
-    // ── Cari kitab di baris ini ──
-    for (const jt of jadwalToleran) {
-      // Cek apakah kitab ini valid untuk tanggal (ada di kitabValid)
-      if (!kitabValid.find(kv => kv.ab === jt.ab)) continue;
-      const m = b.match(jt.regexToleran);
-      if (m) {
-        const bab = parseInt(m[1]);
-        if (bab >= jt.babMulai && bab <= jt.babAkhir) {
-          // Kalau ada kitab pending yang belum dapat ayat → simpan tanpa ayat
-          if (kitabPending && !entries.find(e => e.kitab.ab === kitabPending.ab && e.bab === babPending)) {
-            entries.push({ tipe: tipeAktif, kitab: kitabPending, bab: babPending, ayat: '' });
-          }
-          kitabPending = jt;
-          babPending   = bab;
-
-          // Cek apakah ayat ada di baris yang sama (inline): "📖 Kel 3 ❤️ 10,12"
-          const sisaBaris = b.slice(b.search(jt.regexToleran) + m[0].length);
-          if (sisaBaris.includes('❤️')) {
-            const ayatRaw = sisaBaris.replace(/❤️/g, '').trim();
-            const ayat = normalisasiAyat(ayatRaw);
-            if (ayat && /\d/.test(ayat)) {
-              entries.push({ tipe: tipeAktif, kitab: jt, bab, ayat });
-              kitabPending = null; babPending = null;
-            }
-          }
-        }
-        break;
-      }
-    }
-
-    // ── Cari ayat di baris ini (setelah ❤️ atau baris angka murni) ──
-    const adaHati   = b.includes('❤️');
-    const angkaMurni = /^[\d,\-\s.]+$/.test(b) && /\d/.test(b);
-
-    if ((adaHati || angkaMurni) && kitabPending) {
-      const ayatRaw = b.replace(/❤️/g, '').trim();
-      const ayat    = normalisasiAyat(ayatRaw);
-      if (ayat && /\d/.test(ayat)) {
-        entries.push({ tipe: tipeAktif, kitab: kitabPending, bab: babPending, ayat });
-        kitabPending = null; babPending = null;
-      }
-    }
-  }
-
-  // Kitab terakhir yang belum dapat ayat
-  if (kitabPending) {
-    entries.push({ tipe: tipeAktif, kitab: kitabPending, bab: babPending, ayat: '' });
-  }
-
-  return entries;
-}
-
-/**
- * Format output baku: "Keluaran 3 : 10,12"
- * Multi-bacaan:       "Keluaran 2 : 7-8 | Keluaran 3 : 20"
- */
-/**
- * Format output baku:
- *   📖 → "Keluaran 3 : 10,12"       (tepat waktu, tanpa prefix)
- *   🔥 → "🔥 Keluaran 2 : 7-8"      (bacaan telat, prefix 🔥)
- * Multi: "Keluaran 3 : 20 | 🔥 Keluaran 2 : 7-8"
- */
-function formatBacaan(entries) {
-  return entries.map(e => {
-    const prefix     = e.tipe === '🔥' ? '🔥 ' : '';
-    const ayatBagian = e.ayat ? ` : ${e.ayat}` : '';
-    return `${prefix}${e.kitab.nama} ${e.bab}${ayatBagian}`;
-  }).join(' | ');
-}
-
-/**
- * PARSER UTAMA v2
- * Input : teks OCR mentah dari Tesseract, tanggal ISO
- * Output: array hasil [{ nama, id, bacaan, status, alasan }]
- *
- * Alur:
- * 1. Bersihkan noise (pesan sistem WA, header pengirim, timestamp)
- * 2. Normalisasi simbol emoji
- * 3. Normalisasi penulisan kitab
- * 4. Scan baris per baris → deteksi baris nama peserta
- * 5. Kumpulkan baris sampai nama peserta berikutnya (= satu blok)
- * 6. Dalam setiap blok, ekstrak bacaan (kitab+bab+ayat), termasuk multi-bacaan
- * 7. Tentukan status: ok / review / skip
- */
-function parseOcr(teksAsli, isoTgl) {
-  const { utama, transisi } = kitabAktifUntuk(isoTgl);
-
-  if (!utama) {
-    return [{ nama: '—', id: '', bacaan: '', status: 'skip', alasan: 'Tidak ada jadwal aktif untuk tanggal ini' }];
-  }
-
-  const kitabValid    = [utama, transisi].filter(Boolean);
-  const jadwalToleran = buildKitabRegex(JADWAL_PROGRAM);
-
-  // Preprocessing
-  let teks = bersihkanNoise(teksAsli);
-  teks     = normalisasiSimbol(teks);
-  teks     = normalisasiKitab(teks);
-
-  const semuaBaris = teks.split('\n');
-  const hasil      = [];
-
-  let blokBaris = [];
-  let namaBlok  = '';
-  let idBlok    = '';
-
-  const flushBlok = () => {
-    if (!namaBlok || !blokBaris.length) return;
-
-    const entries = ekstrakBacaanBlok(blokBaris, kitabValid, jadwalToleran);
-
-    if (entries.length === 0) {
-      // Tidak ada bacaan terdeteksi → 1 baris skip
-      if (namaBlok.length >= 2) {
-        hasil.push({
-          nama: namaBlok, id: idBlok, bacaan: '', status: 'skip',
-          alasan: 'Kitab aktif tidak ditemukan dalam pesan'
-        });
-      }
+    if (isAngka(cols[0]) && cols.length >= 5) {
+      // Format lengkap 5 kolom: NO NAMA ID KITAB AYAT
+      [no, nama, id, kitabRaw, ayatRaw] = cols;
+    } else if (isAngka(cols[0]) && cols.length === 4) {
+      // 4 kolom: NO NAMA KITAB AYAT (tanpa ID)
+      [no, nama, kitabRaw, ayatRaw] = cols;
+      id = '';
     } else {
-      // Setiap entry jadi BARIS TERPISAH agar mudah diedit
-      // Nama ditampilkan di baris pertama, baris berikutnya pakai label "(lanjutan)"
-      entries.forEach((e, idx) => {
-        const bacaan   = formatBacaan([e]);
-        const adaAyat  = !!e.ayat;
-        const isTelat  = e.tipe === '🔥';
-        let status, alasan;
-
-        if (adaAyat) {
-          status = 'ok';
-          alasan = isTelat ? '🔥 Bacaan telat' : '';
-        } else {
-          status = 'review';
-          alasan = 'Ayat tidak terdeteksi' + (isTelat ? ' · 🔥 bacaan telat' : '');
-        }
-
-        // Nama: baris pertama tampil nama asli, baris berikutnya beri tanda lanjutan
-        const namaRow = idx === 0
-          ? namaBlok
-          : `${namaBlok} ↩`;
-
-        if (namaBlok.length >= 2) {
-          hasil.push({ nama: namaRow, id: idBlok, bacaan, status, alasan });
-        }
-      });
+      continue; // baris tidak dikenali
     }
 
-    blokBaris = [];
-    namaBlok  = '';
-    idBlok    = '';
-  };
+    // Validasi: nama minimal 2 karakter huruf
+    if (!/[A-Za-z]{2}/.test(nama)) continue;
+    // Validasi: kitabRaw mengandung huruf
+    if (!/[A-Za-z]/.test(kitabRaw)) continue;
 
-  for (const baris of semuaBaris) {
-    const trimmed = baris.trim();
-    if (!trimmed) continue;
-
-    if (adalahBarisPeserta(trimmed, kitabValid)) {
-      flushBlok();
-      namaBlok = ekstrakNama(trimmed);
-      idBlok   = ekstrakId(trimmed);
-    }
-
-    blokBaris.push(trimmed);
+    rows.push({
+      no       : no.trim(),
+      nama     : nama.trim(),
+      id       : id.trim().padStart(3,'0').replace(/^0+([^0]|0$)/, '$1').padStart(3,'0'),
+      kitabRaw : kitabRaw.trim(),
+      ayatRaw  : (ayatRaw || '').trim(),
+    });
   }
-  flushBlok();
 
-  return hasil.length ? hasil : [{
-    nama: '—', id: '', bacaan: '',
-    status: 'skip',
-    alasan: 'Tidak ada entri terdeteksi — coba lihat teks mentah OCR'
-  }];
+  if (rows.length === 0) {
+    return [{
+      nama:'—', id:'', bacaan:'',
+      status:'skip',
+      alasan:'Tidak ada baris tabel yang berhasil dideteksi — lihat teks mentah'
+    }];
+  }
+
+  // ── Pass 2: resolve kitab & format bacaan per baris ──
+  const entri = []; // { nama, id, bacaan, status, alasan }
+
+  for (const r of rows) {
+    // Parse KITAB_BAB: "KEL 4", "KEL4", "Keluaran 4"
+    // Pisahkan singkatan kitab dari nomor bab
+    const kitabBabMatch = r.kitabRaw.match(/^([A-Za-z]+)\s*(\d+)$/);
+    if (!kitabBabMatch) {
+      entri.push({ nama:r.nama, id:r.id, bacaan:r.kitabRaw, status:'review', alasan:'Format kitab-bab tidak dikenali' });
+      continue;
+    }
+
+    const singkat   = kitabBabMatch[1];
+    const bab       = kitabBabMatch[2];
+    const namaKitab = resolveKitab(singkat);
+
+    if (!namaKitab) {
+      entri.push({ nama:r.nama, id:r.id, bacaan:`${singkat} ${bab}`, status:'review', alasan:`Singkatan kitab "${singkat}" tidak dikenali` });
+      continue;
+    }
+
+    const ayat   = normAyat(r.ayatRaw);
+    const bacaan = ayat ? `${namaKitab} ${bab} : ${ayat}` : `${namaKitab} ${bab}`;
+
+    let status = 'ok';
+    let alasan = '';
+
+    if (!ayat) {
+      status = 'review';
+      alasan = 'Ayat tidak terisi';
+    }
+
+    // Tandai jika kitab di luar jadwal aktif (tapi tetap tampilkan)
+    if (kitabAktif.length && !kitabAktif.includes(namaKitab)) {
+      if (status === 'ok') {
+        status = 'review';
+        alasan = `Kitab di luar jadwal aktif (${kitabAktif.join(' / ')})`;
+      }
+    }
+
+    entri.push({ nama:r.nama, id:r.id, bacaan, status, alasan });
+  }
+
+  // ── Pass 3: gabungkan multi-bacaan (nama+id sama) ──
+  // Orang yang sama dengan 2 baris → digabung jadi 1 entri dengan bacaan dipisah " | "
+  // Catatan: TIDAK digabung otomatis karena admin mungkin ingin menyimpan per-baris.
+  // Tapi tandai baris lanjutan agar terlihat jelas di tabel.
+  const seen = new Set();
+  for (const e of entri) {
+    const key = `${e.nama}|${e.id}`;
+    e._isLanjutan = seen.has(key);
+    seen.add(key);
+  }
+
+  return entri;
 }
 
-// ════════════════════════════════════════════
-// TAMPIL HASIL
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+//  TAMPIL HASIL
+// ══════════════════════════════════════════════════════
 let hasilParsing = [];
 
 function tampilHasil(hasil) {
   hasilParsing = hasil;
-  document.getElementById('hasilWrap').style.display = 'block';
 
-  // Statistik
-  const total   = hasil.length;
-  const ok      = hasil.filter(h => h.status === 'ok').length;
-  const review  = hasil.filter(h => h.status === 'review').length;
-  const skip    = hasil.filter(h => h.status === 'skip').length;
+  // Tampilkan kolom File jika multi-file
+  const multiFile = fileQueue.length > 1;
+  document.getElementById('thFile').style.display = multiFile ? '' : 'none';
+
+  const cntOk     = hasil.filter(h => h.status === 'ok').length;
+  const cntReview = hasil.filter(h => h.status === 'review').length;
+  const cntSkip   = hasil.filter(h => h.status === 'skip').length;
 
   document.getElementById('statRow').innerHTML = `
-    <span class="stat-chip chip-total">📊 Total: ${total}</span>
-    <span class="stat-chip chip-ok">✅ Siap: ${ok}</span>
-    <span class="stat-chip chip-review">⚠️ Perlu cek: ${review}</span>
-    <span class="stat-chip chip-skip">❌ Dilewati: ${skip}</span>
+    <span class="stat-chip chip-total">📊 Total: ${hasil.length}</span>
+    <span class="stat-chip chip-ok">✅ Siap: ${cntOk}</span>
+    <span class="stat-chip chip-review">⚠️ Cek: ${cntReview}</span>
+    ${cntSkip ? `<span class="stat-chip chip-skip">❌ Skip: ${cntSkip}</span>` : ''}
   `;
 
   const tbody = document.getElementById('tblBody');
   tbody.innerHTML = '';
 
   hasil.forEach((h, i) => {
-    const adaTelat   = h.bacaan.includes('🔥');
-    const rowClass   = h.status === 'ok'
-                         ? (adaTelat ? 'row-ok' : 'row-ok')
-                         : h.status === 'review' ? 'row-review' : 'row-skip';
-    const badgeClass = h.status === 'ok'
-                         ? (adaTelat ? 'badge-ok' : 'badge-ok')
-                         : h.status === 'review' ? 'badge-review' : 'badge-skip';
-    const badgeTxt   = h.status === 'ok'
-                         ? (adaTelat ? '✅🔥 Siap+Telat' : '✅ Siap')
-                         : h.status === 'review' ? '⚠️ Cek' : '❌ Skip';
+    const rowCls   = h._isLanjutan ? 'row-ok'
+                   : h.status === 'ok'     ? 'row-ok'
+                   : h.status === 'review' ? 'row-review'
+                   : 'row-skip';
+    const badgeCls = h.status === 'ok'     ? 'badge-ok'
+                   : h.status === 'review' ? 'badge-review'
+                   : 'badge-skip';
+    const badgeTxt = h.status === 'ok'     ? '✅ Siap'
+                   : h.status === 'review' ? '⚠️ Cek'
+                   : '❌ Skip';
     const cbChecked  = h.status !== 'skip' ? 'checked' : '';
     const cbDisabled = h.status === 'skip' ? 'disabled' : '';
 
-    const isLanjutan = h.nama.endsWith(' ↩');
-    const namaAsli   = isLanjutan ? h.nama.slice(0, -2) : h.nama;
-    const namaId     = h.id
-      ? `${namaAsli} <span style="color:var(--ink-3);font-size:0.75rem">(${h.id})</span>`
-      : namaAsli;
-    // Baris lanjutan: indent + label kecil
-    const namaHtml   = isLanjutan
-      ? `<span style="color:var(--ink-3);font-size:0.78rem;padding-left:12px;">↩ ${namaId}</span>`
-      : namaId;
-    // Alasan: orange untuk warning, sage untuk info telat
-    const alasanColor = h.alasan.startsWith('🔥') ? 'var(--sage-dark)' : 'var(--orange)';
-    const alasanHtml  = h.alasan
-      ? `<div style="font-size:0.7rem;color:${alasanColor};margin-top:2px;">${h.alasan}</div>`
+    // Nama: baris lanjutan ditampilkan lebih kecil
+    const namaHtml = h._isLanjutan
+      ? `<span style="color:var(--ink-3);font-size:0.78rem;padding-left:10px;">↩ ${escHtml(h.nama)}</span>`
+      : `<strong>${escHtml(h.nama)}</strong>`;
+    const idHtml   = h.id && h.id !== '000'
+      ? ` <span style="font-size:0.72rem;color:var(--ink-3);">(${h.id})</span>`
+      : '';
+    const alasanHtml = h.alasan
+      ? `<div style="font-size:0.7rem;color:var(--orange);margin-top:2px;">${escHtml(h.alasan)}</div>`
+      : '';
+
+    const fileCell = multiFile
+      ? `<td style="font-size:0.68rem;color:var(--ink-3);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(h._sumberFile||'')}">${escHtml((h._sumberFile||'').replace(/\.[^.]+$/,''))}</td>`
       : '';
 
     tbody.innerHTML += `
-      <tr class="${rowClass}" id="row-${i}" ${isLanjutan ? 'style="border-top:none;"' : ''}>
+      <tr class="${rowCls}" id="row-${i}">
         <td><input type="checkbox" class="cb-simpan" id="cb-${i}" ${cbChecked} ${cbDisabled}></td>
-        <td style="color:var(--ink-3);font-size:0.78rem">${i+1}</td>
-        <td>${namaHtml}${alasanHtml}</td>
-        <td><input type="text" class="edit-bacaan" id="bacaan-${i}" value="${h.bacaan}" placeholder="Ketik manual…" oninput="onEditBacaan(${i})"></td>
-        <td><span class="badge ${badgeClass}" id="badge-${i}">${badgeTxt}</span></td>
+        <td style="color:var(--ink-3);font-size:0.78rem;">${i+1}</td>
+        <td>${namaHtml}${idHtml}${alasanHtml}</td>
+        <td>
+          <input type="text" class="edit-bacaan" id="bacaan-${i}"
+                 value="${escHtml(h.bacaan)}"
+                 placeholder="Ketik manual…"
+                 oninput="onEditBacaan(${i})">
+        </td>
+        <td><span class="badge ${badgeCls}" id="badge-${i}">${badgeTxt}</span></td>
+        ${fileCell}
       </tr>
     `;
   });
 
-  document.getElementById('btnScan').disabled = false;
-  toast(`✅ Selesai — ${total} entri terdeteksi`);
+  document.getElementById('hasilWrap').style.display = 'block';
+  document.getElementById('btnProses').disabled = false;
+  toast(`✅ ${hasil.length} entri terdeteksi`);
 }
 
 function onEditBacaan(i) {
   const val = document.getElementById(`bacaan-${i}`).value.trim();
   hasilParsing[i].bacaan = val;
-  // Update badge jadi review kalau diubah manual
-  const badge = document.getElementById(`badge-${i}`);
   if (val) {
-    badge.className = 'badge badge-review';
-    badge.textContent = '✏️ Manual';
-    document.getElementById(`cb-${i}`).checked = true;
-    document.getElementById(`cb-${i}`).disabled = false;
+    document.getElementById(`badge-${i}`).className = 'badge badge-review';
+    document.getElementById(`badge-${i}`).textContent = '✏️ Manual';
+    const cb = document.getElementById(`cb-${i}`);
+    cb.disabled = false;
+    cb.checked  = true;
   }
 }
 
-// ════════════════════════════════════════════
-// SIMPAN KE FIREBASE — dengan cek duplikat
-// ════════════════════════════════════════════
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-/**
- * Ekstrak kitab + bab dari string bacaan
- * Contoh: "Keluaran 7 : 8,10" → { kitab: "Keluaran", bab: 7 }
- * Contoh: "Keluaran 2 : 24 | Keluaran 1 : 17" → [{ kitab: "Keluaran", bab: 2 }, ...]
- */
+// ══════════════════════════════════════════════════════
+//  SIMPAN KE FIREBASE — dengan cek duplikat
+// ══════════════════════════════════════════════════════
 function parseBacaanUntukDupCek(bacaan) {
   const hasil = [];
-  // Split multi-entry (pakai " | ")
-  const bagian = bacaan.split('|');
-  for (const bag of bagian) {
-    // Hapus prefix 🔥 jika ada sebelum parsing
-    const bersih = bag.replace(/🔥\s*/g, '').trim();
-    // Cocokkan pola "NamaKitab ANGKA"
-    const m = bersih.match(/^([A-Za-z\s]+?)\s+(\d+)/);
-    if (m) {
-      hasil.push({
-        kitab: m[1].trim(),
-        bab  : parseInt(m[2])
-      });
-    }
+  for (const bag of bacaan.split('|')) {
+    const m = bag.trim().match(/^([A-Za-z\s]+?)\s+(\d+)/);
+    if (m) hasil.push({ kitab: m[1].trim(), bab: parseInt(m[2]) });
   }
   return hasil;
 }
 
-/**
- * Cek apakah satu entri sudah ada di Firestore
- * Cocok jika: idPeserta sama + tanggal sama + bacaan mengandung kitab+bab yang sama
- * Return: null (tidak duplikat) | dokumen pertama yang cocok
- */
 async function cekDuplikat(idPeserta, isoTgl, bacaan) {
-  if (!idPeserta) return null; // tanpa ID tidak bisa cek akurat
-  const parsedBacaan = parseBacaanUntukDupCek(bacaan);
-  if (!parsedBacaan.length) return null;
+  if (!idPeserta || idPeserta === '000') return null;
+  const parsedBaru = parseBacaanUntukDupCek(bacaan);
+  if (!parsedBaru.length) return null;
 
   try {
-    // Query Firestore: jurnal dengan idPeserta + tanggal yang sama
     const snap = await window._db.collection('jurnal')
       .where('idPeserta', '==', idPeserta)
-      .where('tanggal', '==', isoTgl)
+      .where('tanggal',   '==', isoTgl)
       .get({ source: 'server' });
 
     if (snap.empty) return null;
 
-    // Cek apakah ada dokumen yang bacaannya mengandung kitab+bab yang sama
     for (const doc of snap.docs) {
-      const bacaanLama = doc.data().bacaan || '';
-      const parsedLama = parseBacaanUntukDupCek(bacaanLama);
-      // Duplikat jika ada irisan kitab+bab
-      for (const baru of parsedBacaan) {
-        for (const lama of parsedLama) {
-          if (baru.kitab === lama.kitab && baru.bab === lama.bab) {
-            return doc.data(); // kembalikan data dokumen lama
-          }
-        }
-      }
+      const parsedLama = parseBacaanUntukDupCek(doc.data().bacaan || '');
+      for (const baru of parsedBaru)
+        for (const lama of parsedLama)
+          if (baru.kitab === lama.kitab && baru.bab === lama.bab)
+            return doc.data();
     }
     return null;
   } catch(e) {
     console.warn('Cek duplikat gagal:', e);
-    return null; // kalau gagal cek, biarkan lanjut
+    return null;
   }
 }
 
@@ -1158,57 +1269,44 @@ async function simpanKeFirebase() {
   const isoTgl = document.getElementById('inputTanggal').value;
   if (!isoTgl) { toast('⚠️ Tanggal tidak dipilih!'); return; }
 
-  // Kumpulkan entri yang dicentang
-  const indeksDipilih = [];
+  const indeks = [];
   for (let i = 0; i < hasilParsing.length; i++) {
-    const cb = document.getElementById(`cb-${i}`);
+    const cb     = document.getElementById(`cb-${i}`);
     const bacaan = document.getElementById(`bacaan-${i}`)?.value.trim();
-    if (cb && cb.checked && bacaan) indeksDipilih.push(i);
+    if (cb?.checked && bacaan) indeks.push(i);
   }
-
-  if (!indeksDipilih.length) { toast('⚠️ Tidak ada entri yang dipilih!'); return; }
+  if (!indeks.length) { toast('⚠️ Tidak ada entri yang dipilih!'); return; }
 
   const btn = document.getElementById('btnSimpan');
   btn.disabled = true;
   btn.innerHTML = '🔍 Cek duplikat…';
 
-  // ── FASE 1: Cek duplikat semua entri yang dicentang ──
-  let adaDuplikat = false;
-  for (const i of indeksDipilih) {
-    const h = hasilParsing[i];
-    // Skip entri yang sudah pernah ditandai override
+  // Fase 1: cek duplikat
+  let adaDup = false;
+  for (const i of indeks) {
+    const h      = hasilParsing[i];
     if (h._overrideKonfirmasi) continue;
-
     const bacaan = document.getElementById(`bacaan-${i}`).value.trim();
     const dupDoc = await cekDuplikat(h.id, isoTgl, bacaan);
 
     if (dupDoc) {
-      adaDuplikat = true;
+      adaDup = true;
       h._isDuplikat = true;
 
-      // Tandai baris sebagai duplikat
       const row = document.getElementById(`row-${i}`);
-      if (row) {
-        row.className = 'row-duplikat';
-        row.style.borderLeft = '3px solid #f0ad4e';
-      }
-      const badge = document.getElementById(`badge-${i}`);
-      if (badge) {
-        badge.className = 'badge badge-duplikat';
-        badge.textContent = '⚠️ Duplikat';
-      }
+      if (row) { row.className = 'row-dup'; row.style.borderLeft = '3px solid #f0ad4e'; }
 
-      // Tampilkan info bacaan lama di bawah nama
+      const badge = document.getElementById(`badge-${i}`);
+      if (badge) { badge.className = 'badge badge-dup'; badge.textContent = '⚠️ Duplikat'; }
+
       const namaCell = row?.querySelector('td:nth-child(3)');
       if (namaCell && !namaCell.querySelector('.dup-info')) {
-        const dupInfo = document.createElement('div');
-        dupInfo.className = 'dup-info';
-        dupInfo.style.cssText = 'font-size:0.7rem;color:#856404;margin-top:3px;background:#fff3cd;border-radius:5px;padding:2px 6px;';
-        dupInfo.textContent = `⚠️ Sudah ada: ${dupDoc.bacaan || '(tanpa bacaan)'} — centang ulang untuk override`;
-        namaCell.appendChild(dupInfo);
+        const di = document.createElement('div');
+        di.className = 'dup-info';
+        di.style.cssText = 'font-size:0.7rem;color:#856404;margin-top:3px;background:#fff3cd;border-radius:5px;padding:2px 6px;';
+        di.textContent = `⚠️ Sudah ada: ${dupDoc.bacaan||'(tanpa bacaan)'} — centang ulang untuk override`;
+        namaCell.appendChild(di);
       }
-
-      // Uncheck otomatis
       const cb = document.getElementById(`cb-${i}`);
       if (cb) cb.checked = false;
     }
@@ -1217,27 +1315,24 @@ async function simpanKeFirebase() {
   btn.disabled = false;
   btn.innerHTML = '🔥 Simpan ke Firebase';
 
-  if (adaDuplikat) {
-    toast('⚠️ Ada duplikat — tandai ulang untuk tetap simpan');
-    return; // Berhenti, biarkan admin review dulu
+  if (adaDup) {
+    toast('⚠️ Ada duplikat — centang ulang untuk override');
+    return;
   }
 
-  // ── FASE 2: Tidak ada duplikat baru → simpan semua yang dicentang ──
+  // Fase 2: simpan
   btn.disabled = true;
   btn.innerHTML = '⏳ Menyimpan…';
 
-  let sukses = 0;
-  let gagal  = 0;
+  let sukses = 0, gagal = 0;
 
   for (let i = 0; i < hasilParsing.length; i++) {
-    const cb = document.getElementById(`cb-${i}`);
-    if (!cb || !cb.checked) continue;
+    const cb     = document.getElementById(`cb-${i}`);
+    if (!cb?.checked) continue;
     const bacaan = document.getElementById(`bacaan-${i}`).value.trim();
     if (!bacaan) continue;
 
     const h = hasilParsing[i];
-    const isOverride = !!h._isDuplikat; // entri ini duplikat yang sengaja di-override
-
     try {
       await window._db.collection('jurnal').add({
         nama      : h.nama,
@@ -1246,12 +1341,11 @@ async function simpanKeFirebase() {
         bacaan    : bacaan,
         refleksi  : '',
         waktu     : firebase.firestore.Timestamp.now(),
-        sumber    : isOverride ? 'scanner-override' : 'scanner'
+        sumber    : h._isDuplikat ? 'scanner-override' : 'scanner-tabel',
       });
       sukses++;
       const row = document.getElementById(`row-${i}`);
-      if (row) { row.style.opacity = '0.5'; row.style.background = '#d4edda'; }
-      // Hapus flag duplikat setelah berhasil simpan
+      if (row) { row.style.opacity='0.5'; row.style.background='#d4edda'; }
       h._isDuplikat = false;
       h._overrideKonfirmasi = true;
     } catch(e) {
@@ -1263,23 +1357,20 @@ async function simpanKeFirebase() {
   btn.disabled = false;
   btn.innerHTML = '🔥 Simpan ke Firebase';
 
-  if (sukses > 0 && gagal === 0) {
-    toast(`✅ ${sukses} entri berhasil disimpan!`);
-  } else if (gagal > 0) {
-    toast(`⚠️ ${sukses} berhasil, ${gagal} gagal — cek koneksi`);
-  }
+  if (sukses > 0 && gagal === 0) toast(`✅ ${sukses} entri berhasil disimpan!`);
+  else if (gagal > 0) toast(`⚠️ ${sukses} berhasil, ${gagal} gagal`);
 }
 
-// ════════════════════════════════════════════
-// TOAST
-// ════════════════════════════════════════════
-let _toastTimer;
+// ══════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════
+let _tt;
 function toast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+  clearTimeout(_tt);
+  _tt = setTimeout(() => el.classList.remove('show'), 3000);
 }
 </script>
 </body>
