@@ -1178,6 +1178,8 @@
       </div>
     </div>
 
+    <div id="orphanIdBox" style="display:none;background:#fff4e5;border:1px solid #f0b64a;color:#7a4a00;border-radius:10px;padding:12px 16px;font-size:0.8rem;line-height:1.5;margin:0 0 16px 0"></div>
+
     <div class="stats-grid" id="statsGrid">
       <div class="stat-card">
         <div class="stat-num" id="st-total">—</div>
@@ -1784,12 +1786,29 @@ function renderProgramAktif() {
 
   // Stats summary
   const today_str = todayS;
-  const inputToday = new Set(_allJurnal.filter(j => j.tanggal === today_str).map(j => j.idPeserta));
-  const pernahInput = new Set(_allJurnal.map(j => j.idPeserta));
+  const validIds = new Set(DAFTAR_PESERTA.map(p => p.id));
+  const inputToday = new Set(_allJurnal.filter(j => j.tanggal === today_str && validIds.has(j.idPeserta)).map(j => j.idPeserta));
+  const pernahInput = new Set(_allJurnal.filter(j => validIds.has(j.idPeserta)).map(j => j.idPeserta));
   document.getElementById('st-total').textContent = _allJurnal.length;
   document.getElementById('st-tepat').textContent = inputToday.size;
   document.getElementById('st-late').textContent  = pernahInput.size - inputToday.size;
   document.getElementById('st-none').textContent  = DAFTAR_PESERTA.length - pernahInput.size;
+
+  // Deteksi entri jurnal dengan idPeserta yang TIDAK cocok dengan peserta manapun
+  // (kemungkinan typo saat input/OCR). Entri seperti ini membuat pernahInput.size
+  // membengkak keliru, sehingga "Belum Pernah Input" di kartu ini bisa lebih kecil
+  // daripada jumlah badge "❌ Belum Pernah" di tabel Semua Peserta.
+  const orphanIds = [...new Set(_allJurnal.filter(j => !validIds.has(j.idPeserta)).map(j => j.idPeserta))];
+  const orphanBox = document.getElementById('orphanIdBox');
+  if (orphanBox) {
+    if (orphanIds.length) {
+      orphanBox.style.display = '';
+      orphanBox.innerHTML = '⚠️ Ditemukan ' + orphanIds.length + ' ID peserta di data jurnal yang tidak cocok dengan daftar peserta (kemungkinan salah ketik/OCR): <b>' + orphanIds.join(', ') + '</b>. Entri ini perlu dicek &amp; dikoreksi di Firestore agar statistik akurat.';
+    } else {
+      orphanBox.style.display = 'none';
+      orphanBox.innerHTML = '';
+    }
+  }
 
   // Jadwal list
   const jadwalListEl = document.getElementById('jadwalList');
