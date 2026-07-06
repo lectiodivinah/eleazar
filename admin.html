@@ -1801,13 +1801,8 @@ function renderProgramAktif() {
   const orphanIds = [...new Set(_allJurnal.filter(j => !validIds.has(j.idPeserta)).map(j => j.idPeserta))];
   const orphanBox = document.getElementById('orphanIdBox');
   if (orphanBox) {
-    if (orphanIds.length) {
-      orphanBox.style.display = '';
-      orphanBox.innerHTML = '⚠️ Ditemukan ' + orphanIds.length + ' ID peserta di data jurnal yang tidak cocok dengan daftar peserta (kemungkinan salah ketik/OCR): <b>' + orphanIds.join(', ') + '</b>. Entri ini perlu dicek &amp; dikoreksi di Firestore agar statistik akurat.';
-    } else {
-      orphanBox.style.display = 'none';
-      orphanBox.innerHTML = '';
-    }
+    orphanBox.style.display = 'none';
+    orphanBox.innerHTML = '';
   }
 
   // Jadwal list
