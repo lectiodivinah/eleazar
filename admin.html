@@ -2025,14 +2025,18 @@ function renderAudit(id) {
   if (!p) return;
 
   const jurnal = _allJurnal.filter(j => j.idPeserta === id).sort((a,b) => {
-    const tglCmp = b.tanggal.localeCompare(a.tanggal);
-    if (tglCmp !== 0) return tglCmp;
-    // Tanggal sama -> urutkan berdasarkan nomor bab (ascending) supaya
-    // rangkaian bacaan susulan tampil runtut sesuai isi kitab, bukan
-    // sesuai urutan kapan data disimpan ke Firestore.
+    // Urutkan utamanya berdasarkan nomor bab kitab (descending, bab terakhir
+    // yang dientry tampil paling atas) supaya memudahkan pengecekan progres
+    // terbaru, tapi tetap runtut mengikuti alur isi kitab.
     const babA = extractBabDariBacaan(a.bacaan, a.tanggal);
     const babB = extractBabDariBacaan(b.bacaan, b.tanggal);
-    if (babA !== null && babB !== null && babA !== babB) return babA - babB;
+    if (babA !== null && babB !== null && babA !== babB) return babB - babA;
+    // Bab tidak terbaca dari salah satu/keduanya -> taruh di akhir list
+    if (babA === null && babB !== null) return 1;
+    if (babA !== null && babB === null) return -1;
+    // Bab sama (atau sama-sama tidak terbaca) -> tanggal terbaru di atas
+    const tglCmp = b.tanggal.localeCompare(a.tanggal);
+    if (tglCmp !== 0) return tglCmp;
     return (b.waktu || 0) - (a.waktu || 0);
   });
 
