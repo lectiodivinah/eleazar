@@ -1690,6 +1690,25 @@ function cekInputSesuai(bacaan, jadwal) {
   return parseInt(m[1],10) === jadwal.bab;
 }
 
+// Ambil nomor bab dari teks bacaan (mis. "Keluaran 14 : 30,31" -> 14)
+// Dipakai untuk mengurutkan entry yang tanggalnya sama secara berurutan per bab,
+// bukan berdasarkan waktu simpan ke Firestore.
+function extractBabDariBacaan(bacaan, tgl) {
+  if (!bacaan) return null;
+  // Coba dulu pakai regex kitab yang sedang aktif pada tanggal tsb (lebih akurat)
+  const jadwal = babJadwalPadaTanggal(tgl);
+  if (jadwal && jadwal.regex) {
+    const m = bacaan.match(jadwal.regex);
+    if (m) return parseInt(m[1], 10);
+  }
+  // Fallback: coba cocokkan dengan semua kitab yang terdaftar
+  for (const prog of JADWAL_PROGRAM) {
+    const m = bacaan.match(prog.regex);
+    if (m) return parseInt(m[1], 10);
+  }
+  return null;
+}
+
 // ════════════════════════════════════════════
 // FIREBASE — MUAT SEMUA
 // ════════════════════════════════════════════
@@ -2008,6 +2027,12 @@ function renderAudit(id) {
   const jurnal = _allJurnal.filter(j => j.idPeserta === id).sort((a,b) => {
     const tglCmp = b.tanggal.localeCompare(a.tanggal);
     if (tglCmp !== 0) return tglCmp;
+    // Tanggal sama -> urutkan berdasarkan nomor bab (ascending) supaya
+    // rangkaian bacaan susulan tampil runtut sesuai isi kitab, bukan
+    // sesuai urutan kapan data disimpan ke Firestore.
+    const babA = extractBabDariBacaan(a.bacaan, a.tanggal);
+    const babB = extractBabDariBacaan(b.bacaan, b.tanggal);
+    if (babA !== null && babB !== null && babA !== babB) return babA - babB;
     return (b.waktu || 0) - (a.waktu || 0);
   });
 
