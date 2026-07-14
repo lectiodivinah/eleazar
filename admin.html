@@ -1708,7 +1708,12 @@ async function muat() {
         tanggal   : d.tanggal || '',
         bacaan    : d.bacaan || '',
         refleksi  : d.refleksi || '',
-        waktu     : d.waktu || null
+        // d.waktu bisa berupa Firestore Timestamp (dari scanner.html) ATAU
+        // string/undefined dari sumber lain — normalkan semua ke angka (ms)
+        // supaya aman dibandingkan saat sorting.
+        waktu     : (d.waktu && typeof d.waktu.toMillis === 'function')
+                      ? d.waktu.toMillis()
+                      : (typeof d.waktu === 'number' ? d.waktu : 0)
       });
     });
     _loaded = true;
@@ -2000,7 +2005,11 @@ function renderAudit(id) {
   const p = DAFTAR_PESERTA.find(x => x.id === id);
   if (!p) return;
 
-  const jurnal = _allJurnal.filter(j => j.idPeserta === id).sort((a,b) => b.tanggal.localeCompare(a.tanggal));
+  const jurnal = _allJurnal.filter(j => j.idPeserta === id).sort((a,b) => {
+    const tglCmp = b.tanggal.localeCompare(a.tanggal);
+    if (tglCmp !== 0) return tglCmp;
+    return (b.waktu || 0) - (a.waktu || 0);
+  });
 
   // Streak
   const dates = [...new Set(jurnal.map(j => j.tanggal))].sort();
